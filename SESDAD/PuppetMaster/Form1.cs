@@ -204,8 +204,17 @@ namespace PuppetMaster
 
         public void subscribe(string processName, string topicName)
         {
+            if (this.site.Equals(this.subsWithSite[processName]))
+            {
+                Console.WriteLine(subsWithUrl[processName]);
 
+                formP.BeginInvoke(formP.myDelegate, subsWithUrl[processName]);
+                ISubscriber subscriber = (ISubscriber)Activator.GetObject(
+                      typeof(ISubscriber),
+                             this.subsWithUrl[processName]);
 
+                subscriber.subEvent(topicName);
+            }
         }
 
         public void publish(string processName, string numberEvents, string topicName, string interval)

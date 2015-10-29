@@ -63,7 +63,7 @@ namespace Subscriber
             try
             {
                 this.broker.subscribe(topic, adress);
-                Console.WriteLine("Create Subscription on :" + topic);
+                Console.WriteLine("Create Subscription on : " + topic);
             }
             catch (Exception)
             {
