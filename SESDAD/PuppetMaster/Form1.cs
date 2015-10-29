@@ -88,9 +88,28 @@ namespace PuppetMaster
                     {
                         puppet.subscribe(command[1],command[3]);
                     }
+                    else if (command[2].Equals("Unsubscribe"))
+                    {
+                        puppet.unsubscribe(command[1], command[3]);
+                    }
                     break;
                 case "Publisher":
                     puppet.publish(command[1], command[3], command[5], command[7]);
+                    break;
+                case "Status":
+                    puppet.status();
+                    break;
+                case "Crash":
+                    puppet.crash(command[1]);
+                    break;
+                case "Freeze":
+                    puppet.freeze(command[1]);
+                    break;
+                case "Unfreeze":
+                    puppet.unfreeze(command[1]);
+                    break;
+                case "Wait":
+                    System.Threading.Thread.Sleep(Int32.Parse(command[1]));
                     break;
             }
 
@@ -217,6 +236,21 @@ namespace PuppetMaster
             }
         }
 
+        public void unsubscribe(string processName, string topicName)
+        {
+            if (this.site.Equals(this.subsWithSite[processName]))
+            {
+                Console.WriteLine(subsWithUrl[processName]);
+
+                formP.BeginInvoke(formP.myDelegate, subsWithUrl[processName]);
+                ISubscriber subscriber = (ISubscriber)Activator.GetObject(
+                      typeof(ISubscriber),
+                             this.subsWithUrl[processName]);
+
+                subscriber.UnsubEvent(topicName);
+            }
+        }
+
         public void publish(string processName, string numberEvents, string topicName, string interval)
         {
             if (this.site.Equals(this.pubWithSite[processName]))
@@ -253,9 +287,60 @@ namespace PuppetMaster
         //        sites.Root.Add(siteName, siteParent);
         }
 
+        public void crash(string processName)
+        {
+            if (this.site.Equals(this.pubWithSite[processName]))
+            {
+                Console.WriteLine(pubWithUrl[processName]);
 
+                formP.BeginInvoke(formP.myDelegate, pubWithUrl[processName]);
+                IPublisher publisher = (IPublisher)Activator.GetObject(
+                      typeof(IPublisher),
+                             this.pubWithUrl[processName]);
 
+                publisher.crash();
+            
+            }
 
+            if (this.site.Equals(this.subsWithSite[processName]))
+            {
+                Console.WriteLine(subsWithUrl[processName]);
+
+                formP.BeginInvoke(formP.myDelegate, subsWithUrl[processName]);
+                ISubscriber subscriber = (ISubscriber)Activator.GetObject(
+                      typeof(ISubscriber),
+                             this.subsWithUrl[processName]);
+
+                subscriber.crash();
+    
+            }
+            if(this.brokers.Equals(this.brokers[processName]))
+            {
+                Console.WriteLine(brokers[processName]);
+
+                formP.BeginInvoke(formP.myDelegate, brokers[processName]);
+                IBroker broker = (IBroker)Activator.GetObject(
+                      typeof(IBroker),
+                             this.brokers[processName]);
+
+                broker.crash();
+            }
+        }
+
+        public void status()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void freeze(string processName)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void unfreeze(string processName)
+        {
+            throw new NotImplementedException();
+        }
     }
 
 }

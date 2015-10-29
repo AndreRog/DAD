@@ -50,12 +50,15 @@ namespace Subscriber
 
         private IBroker broker;
 
+        private Dictionary<string, Event> eventsReceived;
+
         public Subscriber(string name, string url, string brokerUrl, IBroker broker)
         {
             this.name = name;
             this.adress = url;
             this.brokerUrl = brokerUrl;
             this.broker = broker;
+            eventsReceived = new Dictionary<string, Event>();
         }
 
         public void subEvent(string topic)
@@ -63,12 +66,47 @@ namespace Subscriber
             try
             {
                 this.broker.subscribe(topic, adress);
-                Console.WriteLine("Create Subscription on : " + topic);
+                Console.WriteLine("Create Subscription on : " + topic + " by -> " + adress);
             }
             catch (Exception)
             {
                 Console.WriteLine("Something make bum bum");
             }
+        }
+
+        public void UnsubEvent(string topic)
+        {
+            try
+            {
+                this.broker.unsubscribe(topic, adress);
+                Console.WriteLine("Create Unsubscription on : " + topic + " by -> " + adress);
+            }
+            catch (Exception)
+            {
+                Console.WriteLine("Something make bum bum");
+            }
+        }
+
+        public void displayEvents()
+        {
+            foreach (string s in eventsReceived.Keys)
+            {
+                Console.WriteLine("Event : " + s);
+            }
+        }
+
+        public void receiveEvent(string topic, Event e)
+        {
+            if (!(eventsReceived.ContainsValue(e)))
+            {
+                this.eventsReceived.Add(topic, e);
+                Console.WriteLine("Evento Recebido : " + topic);
+            }
+        }
+
+        public void crash()
+        {
+            Environment.Exit(-1);
         }
     }
 }

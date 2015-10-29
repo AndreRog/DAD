@@ -71,7 +71,8 @@ namespace Publisher
             
         }
 
-        public void sendEvent(string numberEvents, string topic, string interval) {
+        public void sendEvent(string numberEvents, string topic, string interval)
+        {
             Event e;
             int times = Int32.Parse(numberEvents);
             int sleep = Int32.Parse(interval);
@@ -95,6 +96,11 @@ namespace Publisher
                 Thread.Sleep(sleep);
             }
         
+        }
+
+        public void crash()
+        {
+            Environment.Exit(-1);
         }
 
     }

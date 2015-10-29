@@ -81,21 +81,55 @@ namespace Broker
 
         public string receivePub(string name, Event e)
         {
-            Console.WriteLine("Received");
+            Console.WriteLine("Received Publish");
             events.Add( new KeyValuePair<string,Event>(name, e));
             return "ACK";
         }
 
         public string subscribe(string topic, string URL)
         {
-            Console.WriteLine("Received");
+            Console.WriteLine("Received Subscribe");
             this.topicSubs.Add(topic, URL);
             return "ACK";
         }
 
+        public string unsubscribe(string topic, string URL)
+        {
+            // pode eliminar o errado caso existam 2 ocorrencias , FIX ME
+            Console.WriteLine("Received Unsubscribe");
+            this.topicSubs.Remove(topic);
+            return "ACK";
+        }
+
+        public void crash()
+        {
+            Environment.Exit(-1);
+        }
+
         public void flood()
         {
+            int i,j;
 
+            string url;
+            string topicName;
+            Event e;
+
+            for(i=0; i < events.Count(); i++){
+                topicName = events[i].Key;
+                e = events[i].Value;
+                for (j = 0; j < topicSubs.Count(); j++)
+                {
+
+                    if (topicSubs.ContainsKey(topicName))
+                    {
+                        topicSubs.TryGetValue(topicName,out url);
+                        ISubscriber sub = (ISubscriber)Activator.GetObject(
+                            typeof(ISubscriber),
+                            url);
+                        sub.receiveEvent(topicName, e);
+                    }
+                }
+            }
         }
     }
 }

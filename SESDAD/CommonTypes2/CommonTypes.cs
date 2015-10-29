@@ -16,16 +16,23 @@ namespace CommonTypes
         void addSubscriber(string name, string url);
         string receivePub(string name,Event e);
         string subscribe(string topic, string URL);
+        string unsubscribe(string topic, string URL);
+        void crash();
     }
 
     public interface ISubscriber
     {
         void subEvent(string topic);
+        void displayEvents();
+        void receiveEvent(string topic, Event e);
+        void UnsubEvent(string topicName);
+        void crash();
     }
 
     public interface IPublisher
     {
         void pubEvent(string numberEvents, string topicName, string interva);
+        void crash();
     }
 
     public interface IPuppetMaster
