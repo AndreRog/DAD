@@ -83,6 +83,7 @@ namespace Broker
         {
             Console.WriteLine("Received Publish");
             events.Add( new KeyValuePair<string,Event>(name, e));
+            sendAll(e);
             return "ACK";
         }
 
@@ -97,13 +98,28 @@ namespace Broker
         {
             // pode eliminar o errado caso existam 2 ocorrencias , FIX ME
             Console.WriteLine("Received Unsubscribe");
-            this.topicSubs.Remove(topic);
+            if (this.topicSubs[topic].Equals(URL))
+            {
+                this.topicSubs.Remove(topic);
+            }
             return "ACK";
         }
 
         public void crash()
         {
             Environment.Exit(-1);
+        }
+
+        public void sendAll(Event e)
+        {
+            foreach (string s in subs.Values)
+            {
+                ISubscriber sub = (ISubscriber)Activator.GetObject(
+                            typeof(ISubscriber),
+                            s);
+                Console.WriteLine(e.getTopic());
+                sub.receiveEvent(e.getTopic(), e);
+            }
         }
 
         public void flood()
@@ -123,6 +139,7 @@ namespace Broker
                     if (topicSubs.ContainsKey(topicName))
                     {
                         topicSubs.TryGetValue(topicName,out url);
+                        Console.WriteLine("URL : " + url);
                         ISubscriber sub = (ISubscriber)Activator.GetObject(
                             typeof(ISubscriber),
                             url);

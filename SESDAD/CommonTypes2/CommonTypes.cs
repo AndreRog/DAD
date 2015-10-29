@@ -14,7 +14,7 @@ namespace CommonTypes
         void addChild(string name,string url);
         void addPublisher(string name, string url);
         void addSubscriber(string name, string url);
-        string receivePub(string name,Event e);
+        string receivePub(string name, Event e);
         string subscribe(string topic, string URL);
         string unsubscribe(string topic, string URL);
         void crash();
@@ -51,6 +51,11 @@ namespace CommonTypes
         {
             this.topic = topic;
             this.content = content;
+        }
+
+        public string getTopic()
+        {
+            return topic;
         }
     }
 

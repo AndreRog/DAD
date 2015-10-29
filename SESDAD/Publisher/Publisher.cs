@@ -86,12 +86,13 @@ namespace Publisher
 
                 try
                 {
+                    // Vê a excepção que dá quando corres pela segunda vez
                     this.broker.receivePub(this.name, e);
                     Console.WriteLine("Creating Event : " + topic);       
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    Console.WriteLine("Bad connection");
+                    Console.WriteLine("Bad connection" + ex.Message);
                 }
                 Thread.Sleep(sleep);
             }

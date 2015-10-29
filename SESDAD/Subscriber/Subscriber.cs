@@ -66,7 +66,7 @@ namespace Subscriber
             try
             {
                 this.broker.subscribe(topic, adress);
-                Console.WriteLine("Create Subscription on : " + topic + " by -> " + adress);
+                Console.WriteLine("Create Subscription on : " + topic);
             }
             catch (Exception)
             {
@@ -79,7 +79,7 @@ namespace Subscriber
             try
             {
                 this.broker.unsubscribe(topic, adress);
-                Console.WriteLine("Create Unsubscription on : " + topic + " by -> " + adress);
+                Console.WriteLine("Create Unsubscription on : " + topic);
             }
             catch (Exception)
             {
