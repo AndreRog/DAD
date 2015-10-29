@@ -51,11 +51,13 @@ namespace Broker
         private Dictionary<string,string> childs;
         private Dictionary<string, string> pubs;
         private Dictionary<string, string> subs;
+        private Dictionary<string, string> topicSubs;
         public Broker(String parent) {
             this.parentURL = parent;
             this.childs = new Dictionary<string, string>(2);
             this.pubs = new Dictionary<string, string>();
             this.subs = new Dictionary<string, string>();
+            this.topicSubs = new Dictionary<string, string>();
             this.events = new List<KeyValuePair<string, Event>>();
         }
 
@@ -74,7 +76,7 @@ namespace Broker
         public void addSubscriber(string name, string URL)
         {
             this.subs.Add(name, URL);
-            Console.WriteLine("Child Added:" + name);
+            Console.WriteLine("Subscriber Added:" + name);
         }
 
         public string receivePub(string name, Event e)
@@ -84,9 +86,11 @@ namespace Broker
             return "ACK";
         }
 
-        public void receiveSub()
+        public string subscribe(string topic, string URL)
         {
-
+            Console.WriteLine("Received");
+            this.topicSubs.Add(topic, URL);
+            return "ACK";
         }
 
         public void flood()

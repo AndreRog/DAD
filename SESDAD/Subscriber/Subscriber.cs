@@ -22,15 +22,17 @@ namespace Subscriber
 
             TcpChannel subChannel = new TcpChannel(Int32.Parse(arg[2]));
             ChannelServices.RegisterChannel(subChannel, false);
-
-            Subscriber subscriber = new Subscriber(args[0],args[2], args[3]);
-            RemotingServices.Marshal(subscriber, "subscriber", typeof(Subscriber));
-
-
-           //Add Sub to Broker.
+            
+            //Add Sub to Broker.
             IBroker broker = (IBroker)Activator.GetObject(
                         typeof(IBroker),
                     args[3]);
+
+            Subscriber subscriber = new Subscriber(args[0],args[2], args[3],broker);
+            RemotingServices.Marshal(subscriber, "subscriber", typeof(Subscriber));
+
+
+     
 
             broker.addSubscriber(args[0], args[2]);
             Console.ReadLine();
@@ -46,13 +48,27 @@ namespace Subscriber
 
         private string brokerUrl;
 
-        public Subscriber(string name, string url, string brokerUrl)
+        private IBroker broker;
+
+        public Subscriber(string name, string url, string brokerUrl, IBroker broker)
         {
             this.name = name;
             this.adress = url;
             this.brokerUrl = brokerUrl;
+            this.broker = broker;
         }
 
-
+        public void subEvent(string topic)
+        {
+            try
+            {
+                this.broker.subscribe(topic, adress);
+                Console.WriteLine("Create Subscription on :" + topic);
+            }
+            catch (Exception)
+            {
+                Console.WriteLine("Something make bum bum");
+            }
+        }
     }
 }

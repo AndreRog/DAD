@@ -15,13 +15,12 @@ namespace CommonTypes
         void addPublisher(string name, string url);
         void addSubscriber(string name, string url);
         string receivePub(string name,Event e);
-        void receiveSub();
-
+        string subscribe(string topic, string URL);
     }
 
     public interface ISubscriber
     {
-
+        void subEvent(string topic);
     }
 
     public interface IPublisher
