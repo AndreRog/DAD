@@ -4,3 +4,4 @@ Process broker0 Is BROKER On site0 URL tcp://localhost:3333/broker null null nul
 Process broker1 Is BROKER On site1 URL tcp://localhost:3334/broker tcp://localhost:3333/broker null null
 Process subscriber0 Is SUBSCRIBER On site0 URL tcp://localhost:3335/subscriber tcp://localhost:3333/broker
 Process publisher0 Is PUBLISHER On site0 URL tcp://localhost:3336/publisher tcp://localhost:3333/broker
+Publisher publisher0 Publish 2 Ontopic Futebol Interval 1000

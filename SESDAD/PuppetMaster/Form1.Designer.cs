@@ -93,9 +93,9 @@
             // MsgViewBox
             // 
             this.MsgViewBox.FormattingEnabled = true;
-            this.MsgViewBox.Location = new System.Drawing.Point(588, 50);
+            this.MsgViewBox.Location = new System.Drawing.Point(520, 50);
             this.MsgViewBox.Name = "MsgViewBox";
-            this.MsgViewBox.Size = new System.Drawing.Size(120, 95);
+            this.MsgViewBox.Size = new System.Drawing.Size(226, 173);
             this.MsgViewBox.TabIndex = 6;
             this.MsgViewBox.SelectedIndexChanged += new System.EventHandler(this.MsgViewBox_SelectedIndexChanged);
             // 

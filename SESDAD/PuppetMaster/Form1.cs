@@ -213,6 +213,10 @@ namespace PuppetMaster
             if (this.site.Equals(this.pubWithSite[processName]))
             {
 
+
+                Console.WriteLine(pubWithUrl[processName]);
+
+                formP.BeginInvoke(formP.myDelegate, pubWithUrl[processName]);
                 IPublisher publisher = (IPublisher)Activator.GetObject(
                       typeof(IPublisher),
                              this.pubWithUrl[processName]);

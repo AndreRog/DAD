@@ -47,7 +47,7 @@ namespace Broker
     {
 
         private String parentURL;
-
+        private List<KeyValuePair<string, Event>> events;
         private Dictionary<string,string> childs;
         private Dictionary<string, string> pubs;
         private Dictionary<string, string> subs;
@@ -56,6 +56,7 @@ namespace Broker
             this.childs = new Dictionary<string, string>(2);
             this.pubs = new Dictionary<string, string>();
             this.subs = new Dictionary<string, string>();
+            this.events = new List<KeyValuePair<string, Event>>();
         }
 
         public void addChild(string name, string URL)
@@ -76,9 +77,16 @@ namespace Broker
             Console.WriteLine("Child Added:" + name);
         }
 
-        public String Hello()
+        public string receivePub(string name, Event e)
         {
-            return "Hello World";
+            Console.WriteLine("Received");
+            events.Add( new KeyValuePair<string,Event>(name, e));
+            return "ACK";
+        }
+
+        public void receiveSub()
+        {
+
         }
 
         public void flood()

@@ -14,7 +14,8 @@ namespace CommonTypes
         void addChild(string name,string url);
         void addPublisher(string name, string url);
         void addSubscriber(string name, string url);
-
+        string receivePub(string name,Event e);
+        void receiveSub();
 
     }
 
@@ -33,12 +34,18 @@ namespace CommonTypes
         void addBroker(string name, string site, string url, string urlbroker);
     }
 
+    [Serializable]
     public class Event
     {
         private string topic;
 
         private string content;
 
+        public Event(string topic, string content)
+        {
+            this.topic = topic;
+            this.content = content;
+        }
     }
 
 
