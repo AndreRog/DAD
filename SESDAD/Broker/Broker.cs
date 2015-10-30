@@ -61,6 +61,13 @@ namespace Broker
             this.events = new List<KeyValuePair<string, Event>>();
         }
 
+        public bool hasChild()
+        {
+            if (childs.Count == 0)
+                return false;
+            else return true;
+        }
+
         public void addChild(string name, string URL)
         {
             this.childs.Add(name, URL);
@@ -83,7 +90,7 @@ namespace Broker
         {
             Console.WriteLine("Received Publish");
             events.Add( new KeyValuePair<string,Event>(name, e));
-            sendAll(e);
+            //sendAll(e);
             return "ACK";
         }
 
@@ -120,6 +127,47 @@ namespace Broker
                 Console.WriteLine(e.getTopic());
                 sub.receiveEvent(e.getTopic(), e);
             }
+        }
+
+        public void status()
+        {
+            int i = 0;
+            
+            Console.WriteLine("ParentURL : " + parentURL);
+            foreach (string s in childs.Keys)
+        	{
+                i++;
+		        Console.WriteLine("Child nº"+i+" :"+s);
+	        }
+            Console.WriteLine("Numero de Childs : " + i);
+            i = 0;
+            foreach (string s in pubs.Keys)
+            {
+                i++;
+                Console.WriteLine("Pub nº" + i + " :" + s);
+            }
+            Console.WriteLine("Numero de Pubs : " + i);
+            i = 0;
+            foreach (string s in subs.Keys)
+            {
+                i++;
+                Console.WriteLine("Subscritor nº" + i + " :" + s);
+            }
+            Console.WriteLine("Numero de Subs : " + i);
+            i = 0;
+            foreach (KeyValuePair<string, string> kp in topicSubs)
+            {
+                i++;
+                Console.WriteLine("Subscricao nº" + i + " Name :" + kp.Key + "Topic : "+ kp.Value);
+            }
+            Console.WriteLine("Numero de Subscricoes : " + i);
+            i = 0;
+            foreach (KeyValuePair<string, Event> kp in events)
+            {
+                i++;
+                Console.WriteLine("Evento nº" + i + " Name:" + kp.Key + " Topic : " + kp.Value.getTopic() + " Conteudo : " + kp.Value.getContent());
+            }
+            Console.WriteLine("Numero de eventos : "+i);
         }
 
         public void flood()

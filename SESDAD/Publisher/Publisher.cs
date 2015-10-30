@@ -88,6 +88,7 @@ namespace Publisher
                 {
                     // Vê a excepção que dá quando corres pela segunda vez
                     this.broker.receivePub(this.name, e);
+                    events.Add(topic, e);
                     Console.WriteLine("Creating Event : " + topic);       
                 }
                 catch (Exception ex)
@@ -102,6 +103,21 @@ namespace Publisher
         public void crash()
         {
             Environment.Exit(-1);
+        }
+
+        public void status()
+        {
+            int i = 0;
+
+            Console.WriteLine("Name : " + name);
+            Console.WriteLine("Address : " + adress);
+            Console.WriteLine("BrokerURL : " + brokerUrl);
+            Console.WriteLine("Eventos publicados");
+            foreach (Event e in events.Values)
+            {
+                i++;
+                Console.WriteLine("Evento nº " + i + "Topic : " + e.getTopic() + " Content : " + e.getContent());
+            }
         }
 
     }

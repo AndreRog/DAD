@@ -18,6 +18,7 @@ namespace CommonTypes
         string subscribe(string topic, string URL);
         string unsubscribe(string topic, string URL);
         void crash();
+        void status();
     }
 
     public interface ISubscriber
@@ -27,12 +28,14 @@ namespace CommonTypes
         void receiveEvent(string topic, Event e);
         void UnsubEvent(string topicName);
         void crash();
+        void status();
     }
 
     public interface IPublisher
     {
         void pubEvent(string numberEvents, string topicName, string interva);
         void crash();
+        void status();
     }
 
     public interface IPuppetMaster
@@ -56,6 +59,11 @@ namespace CommonTypes
         public string getTopic()
         {
             return topic;
+        }
+
+        public string getContent()
+        {
+            return content;
         }
     }
 

@@ -108,5 +108,20 @@ namespace Subscriber
         {
             Environment.Exit(-1);
         }
+
+        public void status()
+        {
+            int i = 0;
+
+            Console.WriteLine("Name : " + name);
+            Console.WriteLine("Address : " + adress);
+            Console.WriteLine("BrokerURL : " + brokerUrl);
+            Console.WriteLine("Eventos recebidos");
+            foreach (Event e in eventsReceived.Values)
+            {
+                i++;
+                Console.WriteLine("Evento nº " + i + "Topic : " + e.getTopic() + " Content : " + e.getContent());
+            }
+        }
     }
 }

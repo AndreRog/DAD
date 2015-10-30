@@ -34,7 +34,8 @@ namespace PuppetMaster
 
         private void button2_Click(object sender, EventArgs e)
         {
-
+            string comand = textBox2.Text;
+            command(comand);
         }
 
         private void add_Message_List(String msg)
@@ -329,7 +330,35 @@ namespace PuppetMaster
 
         public void status()
         {
-            throw new NotImplementedException();
+            Console.WriteLine("Making Status");
+            int i;
+            foreach (string s in brokers.Values)
+            {
+                Console.WriteLine("Broker : " + s);
+                formP.BeginInvoke(formP.myDelegate, s);
+                IBroker broker = (IBroker)Activator.GetObject(
+                                    typeof(IBroker),
+                             s);
+                broker.status();            
+            }
+            foreach (string s in pubWithUrl.Values)
+            {
+                Console.WriteLine("Publisher : " + s);
+                formP.BeginInvoke(formP.myDelegate, s);
+                IPublisher publisher = (IPublisher)Activator.GetObject(
+                      typeof(IPublisher),
+                             s);
+                publisher.status();
+            }
+            foreach (string s in subsWithUrl.Values)
+            {
+                Console.WriteLine("Subscriber : " + s);
+                formP.BeginInvoke(formP.myDelegate, s);
+                ISubscriber subscriber = (ISubscriber)Activator.GetObject(
+                      typeof(ISubscriber),
+                             s);
+                subscriber.status();
+            }
         }
 
         public void freeze(string processName)
