@@ -132,7 +132,7 @@ namespace Broker
         public void status()
         {
             int i = 0;
-            
+            Console.WriteLine("Making Status");
             Console.WriteLine("ParentURL : " + parentURL);
             foreach (string s in childs.Keys)
         	{

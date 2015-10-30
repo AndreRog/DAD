@@ -363,11 +363,13 @@ namespace PuppetMaster
 
         public void freeze(string processName)
         {
+            Console.WriteLine("Freezing "+ processName);
             throw new NotImplementedException();
         }
 
         public void unfreeze(string processName)
         {
+            Console.WriteLine("Unfreezing " + processName);
             throw new NotImplementedException();
         }
     }

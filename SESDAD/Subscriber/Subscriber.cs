@@ -112,7 +112,7 @@ namespace Subscriber
         public void status()
         {
             int i = 0;
-
+            Console.WriteLine("Making Status");
             Console.WriteLine("Name : " + name);
             Console.WriteLine("Address : " + adress);
             Console.WriteLine("BrokerURL : " + brokerUrl);
