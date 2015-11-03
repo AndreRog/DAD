@@ -1,3 +1,2 @@
-MASTER
-SITE site0
-tcp://localhost:10000
+tcp://localhost:10000/PM
+tcp://localhost:10001/PM

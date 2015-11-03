@@ -41,6 +41,7 @@ namespace CommonTypes
     public interface IPuppetMaster
     {
         void addBroker(string name, string site, string url, string urlbroker);
+        void addSubscriber(string name, string site, string url, string urlbroker);
     }
 
     [Serializable]

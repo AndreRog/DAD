@@ -24,39 +24,53 @@ namespace PuppetMaster
         public delegate void UpdateListMessage(string msg);
         public UpdateListMessage myDelegate;
         public bool singleMachine;
+        public bool master;
 
-        
         public Form1(string args)
         {
             InitializeComponent();
             singleMachine = false;
             myDelegate = new UpdateListMessage(add_Message_List);
 
-            puppet = new PuppetMaster(this);
+
             if (args.Equals("-singleMachine"))
             {
                 singleMachine = true;
+                puppet = new PuppetMaster(this, 0, true);
             }
+            else
+            {
+                int iD = Int32.Parse(args);
+                if (iD == 0)
+                {
+                    master = true;
+                }
+                else
+                {
+                    master = false;
+                }
+                puppet = new PuppetMaster(this, iD, false);
+            }
+
             scriptbox.Enabled = false;
             textBox2.Enabled = false;
+            PMConfig.Enabled = false;
+            execute.Enabled = false;
+            button2.Enabled = false;
             InitCheck();
         }
 
-        private void InitCheck() {
-            string cfgpath = @"..\..\..\cfg.txt";
-            StreamReader script = new StreamReader(cfgpath);
-            String Line;
-
-            while ((Line = script.ReadLine()) != null)
+        private void InitCheck()
+        {
+            if (master || singleMachine)
             {
-                if (Line.Equals("MASTER"))
-                {
-                    scriptbox.Enabled = true;
-                    textBox2.Enabled = true;
-                }
-
+                scriptbox.Enabled = true;
+                textBox2.Enabled = true;
+                execute.Enabled = true;
+                button2.Enabled = true;
             }
         }
+
 
         private void button2_Click(object sender, EventArgs e)
         {
@@ -89,31 +103,31 @@ namespace PuppetMaster
             {
                 return;
             }
- 
+
             String[] command = commands.Split(new char[0], StringSplitOptions.RemoveEmptyEntries);
-            
+
             switch (command[0])
             {
 
-                case "Site":
-                    puppet.addSite(command[1], command[3]);
-                    break;
+
                 case "Process":
                     if (command[3].Equals("BROKER"))
                     {
                         puppet.addBroker(command[1], command[5], command[7], command[8]);
                     }
-                    else if (command[3].Equals("SUBSCRIBER")) {
+                    else if (command[3].Equals("SUBSCRIBER"))
+                    {
                         puppet.addSubscriber(command[1], command[5], command[7], command[8]);
                     }
-                     else if (command[3].Equals("PUBLISHER")) {
+                    else if (command[3].Equals("PUBLISHER"))
+                    {
                         puppet.addPublisher(command[1], command[5], command[7], command[8]);
                     }
                     break;
                 case "Subscriber":
                     if (command[2].Equals("Subscribe"))
                     {
-                        puppet.subscribe(command[1],command[3]);
+                        puppet.subscribe(command[1], command[3]);
                     }
                     else if (command[2].Equals("Unsubscribe"))
                     {
@@ -147,31 +161,39 @@ namespace PuppetMaster
 
         }
 
-       
+        private void Site_Click(object sender, EventArgs e)
+        {
+
+        }
+
+
     }
 
-    public class PuppetMaster : MarshalByRefObject
+    public class PuppetMaster : MarshalByRefObject, IPuppetMaster
     {
 
         private bool master;
+        private bool single;
         private String address;
-        private String site;
+        private int site;
+        private Dictionary<int, string> puppets;
         private Dictionary<string, string> brokers;
         private Dictionary<string, string> pubWithUrl;
-        private Dictionary<string, string> pubWithSite;
+        private Dictionary<string, int> pubWithSite;
         private Dictionary<string, string> subsWithUrl;
-        private Dictionary<string, string> subsWithSite;
+        private Dictionary<string, int> subsWithSite;
         private Form1 formP;
-        private BinaryTree<IBroker> sites;
-        public PuppetMaster(Form1 form1)
+        public PuppetMaster(Form1 form1, int iD, bool single)
         {
             this.formP = form1;
-            sites = null;
+            this.site = iD;
+            this.single = single;
             brokers = new Dictionary<string, string>();
             pubWithUrl = new Dictionary<string, string>();
-            pubWithSite = new Dictionary<string, string>();
+            pubWithSite = new Dictionary<string, int>();
             subsWithUrl = new Dictionary<string, string>();
-            subsWithSite = new Dictionary<string, string>();
+            subsWithSite = new Dictionary<string, int>();
+            puppets = new Dictionary<int, string>();
             init();
         }
 
@@ -180,86 +202,127 @@ namespace PuppetMaster
             string cfgpath = @"..\..\..\cfg.txt";
             StreamReader script = new StreamReader(cfgpath);
             String Line;
-
+            int i = 0;
             while ((Line = script.ReadLine()) != null)
             {
-                config(Line);
-            }
-        }
-
-
-        public void config(String line) {
-
-            if(line.Equals("MASTER") || line.Equals("SLAVE")){
-                if (line.Equals("MASTER"))
+                if (i == site)
                 {
-                    this.master = true;
-                  //  formP.BeginInvoke(formP.enableDelegate, true);
+                    if (i == 0)
+                    {
+                        master = true;
+
+                    }
+                    else
+                    {
+                        master = false;
+                    }
+                    this.address = Line;
+                    char[] delimiter = { ':', '/' };
+                    string[] arg = Line.Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
+
+                    TcpChannel channel = new TcpChannel(Int32.Parse(arg[2]));
+                    ChannelServices.RegisterChannel(channel, false);
+                    RemotingServices.Marshal(this, "PM", typeof(PuppetMaster));
+                    i++;
                 }
                 else
                 {
-                    this.master = false;
+                    puppets.Add(i, Line);
+                    i++;
                 }
-            }
-            else if(line.Contains("SITE")) {
-                string[] s = line.Split(new char[0], StringSplitOptions.RemoveEmptyEntries);
-                this.site = s[1];
-            }
-            else {
-                this.address = line;
-                char[] delimiter = { ':', '/' };
-                string[] arg = line.Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
 
-                TcpChannel channel = new TcpChannel(Int32.Parse(arg[2]));
-                ChannelServices.RegisterChannel(channel, false);              
-                RemotingServices.Marshal(this, "PM", typeof(PuppetMaster));
             }
+        }
+
+        public int convertStoI(string s)
+        {
+            char[] j = new char[1];
+            j[0] = s[s.Length - 1];
+            string a = new String(j);
+
+            int i = Int32.Parse(a);
+            return i;
         }
 
         public void addBroker(string name, string site, string URL, string URLParent)
         {
+            int siteB = convertStoI(site);
+            if (this.single || this.site == siteB)
+            {
 
-            String arguments = name + " " + site + " " + URL + " " +URLParent;
-            String filename = @"..\..\..\Broker\bin\Debug\Broker.exe";
-            Process.Start(filename, arguments);
-            formP.BeginInvoke(formP.myDelegate,  URL);
-
-            this.brokers.Add(name,URL);
-//code to build the tree not sure, cause it's done on puppetMaster. ASK
-           //sites.Root.searchByName(site, sites.Root).Value = broker;
-           //String msg = sites.Root.searchByName(site, sites.Root).Value.Hello();
-           //Update the form
-           //formP.BeginInvoke(formP.myDelegate, new Object[] { msg });
+                String arguments = name + " " + site + " " + URL + " " + URLParent;
+                String filename = @"..\..\..\Broker\bin\Debug\Broker.exe";
+                Process.Start(filename, arguments);
+                formP.BeginInvoke(formP.myDelegate, URL);
+            }
+            else
+            {
+                //Remote PuppetSlave starts the process.
+                IPuppetMaster puppetM = (IPuppetMaster)Activator.GetObject(
+                    typeof(IPuppetMaster),
+                    puppets[siteB]);
+                puppetM.addBroker(name, site, URL, URLParent);
+            }
+            this.brokers.Add(name, URL);
         }
 
         public void addSubscriber(string name, string site, string url, string urlbroker)
         {
-            String arguments = name + " " + site + " " + url + " " + urlbroker;
-            String filename = @"..\..\..\Subscriber\bin\Debug\Subscriber.exe";
-            Process.Start(filename, arguments);
-            formP.BeginInvoke(formP.myDelegate, url);
+
+
+            int siteB = convertStoI(site);
+            if (this.single || this.site == siteB)
+            {
+                String arguments = name + " " + site + " " + url + " " + urlbroker;
+                String filename = @"..\..\..\Subscriber\bin\Debug\Subscriber.exe";
+                Process.Start(filename, arguments);
+                formP.BeginInvoke(formP.myDelegate, url);
+
+            }
+            else
+            {
+                //Remote Puppet Code need to try it yet.
+                IPuppetMaster puppetM = (IPuppetMaster)Activator.GetObject(
+                    typeof(IPuppetMaster),
+                    puppets[siteB]);
+                puppetM.addSubscriber(name, site, url, urlbroker);
+            }
             this.subsWithUrl.Add(name, url);
-            this.subsWithSite.Add(name, site);
+            this.subsWithSite.Add(name, siteB);
         }
 
         public void addPublisher(string name, string site, string url, string urlbroker)
         {
-            String arguments = name + " " + site + " " + url + " " + urlbroker;
-            String filename = @"..\..\..\Publisher\bin\Debug\Publisher.exe";
-            Process.Start(filename, arguments);
-            formP.BeginInvoke(formP.myDelegate, url);
+
+            int siteB = convertStoI(site);
+            if (this.single || this.site == siteB)
+            {
+                String arguments = name + " " + site + " " + url + " " + urlbroker;
+                String filename = @"..\..\..\Publisher\bin\Debug\Publisher.exe";
+                Process.Start(filename, arguments);
+                formP.BeginInvoke(formP.myDelegate, url);
+
+            }
+            else
+            {
+                //Remote Puppet Code need to try it yet.
+            }
             this.pubWithUrl.Add(name, url);
-            this.pubWithSite.Add(name, site);
+            this.pubWithSite.Add(name, siteB);
         }
 
 
         public void subscribe(string processName, string topicName)
         {
-            if (this.site.Equals(this.subsWithSite[processName]))
+
+            //string siteP = this.subsWithSite[processName];
+
+
+            if (this.single || this.site == this.subsWithSite[processName])
             {
                 Console.WriteLine(subsWithUrl[processName]);
 
-                formP.BeginInvoke(formP.myDelegate, subsWithUrl[processName]);
+                formP.BeginInvoke(formP.myDelegate, "Subscription");
                 ISubscriber subscriber = (ISubscriber)Activator.GetObject(
                       typeof(ISubscriber),
                              this.subsWithUrl[processName]);
@@ -270,7 +333,7 @@ namespace PuppetMaster
 
         public void unsubscribe(string processName, string topicName)
         {
-            if (this.site.Equals(this.subsWithSite[processName]))
+            if (this.single || this.site == (this.subsWithSite[processName]))
             {
                 Console.WriteLine(subsWithUrl[processName]);
 
@@ -285,13 +348,16 @@ namespace PuppetMaster
 
         public void publish(string processName, string numberEvents, string topicName, string interval)
         {
-            if (this.site.Equals(this.pubWithSite[processName]))
+
+
+
+            if (this.single || this.site == (this.pubWithSite[processName]))
             {
 
 
                 Console.WriteLine(pubWithUrl[processName]);
 
-                formP.BeginInvoke(formP.myDelegate, pubWithUrl[processName]);
+                formP.BeginInvoke(formP.myDelegate, "Publish");
                 IPublisher publisher = (IPublisher)Activator.GetObject(
                       typeof(IPublisher),
                              this.pubWithUrl[processName]);
@@ -303,20 +369,8 @@ namespace PuppetMaster
                 //IPuppetMaster puppetM = PuppetMaster
 
             }
-    
-
-        }
 
 
-
-        public void addSite(string siteName, string siteParent)
-        {
-        //    if (sites == null){
-        //        sites = new BinaryTree<IBroker>();
-        //        sites.Root = new BinaryTreeNode<IBroker>(null, null, siteName);
-        //}
-        //    else
-        //        sites.Root.Add(siteName, siteParent);
         }
 
         public void crash(string processName)
@@ -331,7 +385,7 @@ namespace PuppetMaster
                              this.pubWithUrl[processName]);
 
                 publisher.crash();
-            
+
             }
 
             if (this.site.Equals(this.subsWithSite[processName]))
@@ -344,9 +398,9 @@ namespace PuppetMaster
                              this.subsWithUrl[processName]);
 
                 subscriber.crash();
-    
+
             }
-            if(this.brokers.Equals(this.brokers[processName]))
+            if (this.brokers.Equals(this.brokers[processName]))
             {
                 Console.WriteLine(brokers[processName]);
 
@@ -362,7 +416,7 @@ namespace PuppetMaster
         public void status()
         {
             Console.WriteLine("Making Status");
-           // int i;
+            // int i;
             foreach (string s in brokers.Values)
             {
                 Console.WriteLine("Broker : " + s);
@@ -370,7 +424,7 @@ namespace PuppetMaster
                 IBroker broker = (IBroker)Activator.GetObject(
                                     typeof(IBroker),
                              s);
-                broker.status();            
+                broker.status();
             }
             foreach (string s in pubWithUrl.Values)
             {
@@ -394,7 +448,7 @@ namespace PuppetMaster
 
         public void freeze(string processName)
         {
-            Console.WriteLine("Freezing "+ processName);
+            Console.WriteLine("Freezing " + processName);
             throw new NotImplementedException();
         }
 
@@ -404,7 +458,6 @@ namespace PuppetMaster
             throw new NotImplementedException();
         }
     }
-
 }
 
 

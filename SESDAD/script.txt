@@ -4,5 +4,6 @@ Process broker0 Is BROKER On site0 URL tcp://localhost:3333/broker null null nul
 Process broker1 Is BROKER On site1 URL tcp://localhost:3334/broker tcp://localhost:3333/broker null null
 Process subscriber0 Is SUBSCRIBER On site0 URL tcp://localhost:3335/subscriber tcp://localhost:3333/broker
 Process publisher0 Is PUBLISHER On site0 URL tcp://localhost:3336/publisher tcp://localhost:3333/broker
+Process subscriber1 Is SUBSCRIBER On site1 URL tcp://localhost:3337/subscriber tcp://localhost:3334/broker
 Subscriber subscriber0 Subscribe /ist/utl/pt
 Publisher publisher0 Publish 2 Ontopic /ist/utl/pt Interval 1000

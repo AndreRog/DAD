@@ -40,14 +40,13 @@
             this.Type = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.Site = new System.Windows.Forms.Label();
+            this.siteBox = new System.Windows.Forms.TextBox();
             this.addSlave = new System.Windows.Forms.Button();
             this.SlaveURL = new System.Windows.Forms.TextBox();
             this.label4 = new System.Windows.Forms.Label();
             this.PMConfig = new System.Windows.Forms.Button();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
-            this.siteBox = new System.Windows.Forms.TextBox();
-            this.Site = new System.Windows.Forms.Label();
-            this.checkSingle = new System.Windows.Forms.CheckBox();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.SuspendLayout();
@@ -167,6 +166,22 @@
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "PuppetMaster";
             // 
+            // Site
+            // 
+            this.Site.AutoSize = true;
+            this.Site.Location = new System.Drawing.Point(219, 25);
+            this.Site.Name = "Site";
+            this.Site.Size = new System.Drawing.Size(25, 13);
+            this.Site.TabIndex = 16;
+            this.Site.Text = "Site";
+            // 
+            // siteBox
+            // 
+            this.siteBox.Location = new System.Drawing.Point(250, 25);
+            this.siteBox.Name = "siteBox";
+            this.siteBox.Size = new System.Drawing.Size(100, 20);
+            this.siteBox.TabIndex = 15;
+            // 
             // addSlave
             // 
             this.addSlave.Location = new System.Drawing.Point(372, 87);
@@ -216,39 +231,12 @@
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "Scripts";
             // 
-            // siteBox
-            // 
-            this.siteBox.Location = new System.Drawing.Point(250, 25);
-            this.siteBox.Name = "siteBox";
-            this.siteBox.Size = new System.Drawing.Size(100, 20);
-            this.siteBox.TabIndex = 15;
-            // 
-            // Site
-            // 
-            this.Site.AutoSize = true;
-            this.Site.Location = new System.Drawing.Point(219, 25);
-            this.Site.Name = "Site";
-            this.Site.Size = new System.Drawing.Size(25, 13);
-            this.Site.TabIndex = 16;
-            this.Site.Text = "Site";
-            // 
-            // checkSingle
-            // 
-            this.checkSingle.AutoSize = true;
-            this.checkSingle.Location = new System.Drawing.Point(11, 25);
-            this.checkSingle.Name = "checkSingle";
-            this.checkSingle.Size = new System.Drawing.Size(96, 17);
-            this.checkSingle.TabIndex = 13;
-            this.checkSingle.Text = "SingleMachine";
-            this.checkSingle.UseVisualStyleBackColor = true;
-            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.SystemColors.Control;
             this.ClientSize = new System.Drawing.Size(1009, 445);
-            this.Controls.Add(this.checkSingle);
             this.Controls.Add(this.groupBox2);
             this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.MsgViewBox);
@@ -259,7 +247,6 @@
             this.groupBox2.ResumeLayout(false);
             this.groupBox2.PerformLayout();
             this.ResumeLayout(false);
-            this.PerformLayout();
 
         }
 
@@ -284,7 +271,6 @@
         private System.Windows.Forms.Button addSlave;
         private System.Windows.Forms.TextBox siteBox;
         private System.Windows.Forms.Label Site;
-        private System.Windows.Forms.CheckBox checkSingle;
     }
 }
 
