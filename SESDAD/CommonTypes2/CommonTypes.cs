@@ -50,10 +50,15 @@ namespace CommonTypes
 
         private string content;
 
+        private string lastHop;
+        
+       // private int seq;
+
         public Event(string topic, string content)
         {
             this.topic = topic;
             this.content = content;
+            this.lastHop = "null";
         }
 
         public string getTopic()
@@ -65,10 +70,28 @@ namespace CommonTypes
         {
             return content;
         }
+
+        public string getLastHop() {
+           return this.lastHop;
+        }
+
+        public void setLastHop(string s){
+            this.lastHop = s;
+        }
     }
 
 
+    public class Queue
+    {
+        private int lastSeq;
 
+        private List<Event> waitQ;
+
+        public Queue (){
+            this.waitQ = new List<Event>();
+            this.lastSeq = -1;
+        }
+    }
 
 
 

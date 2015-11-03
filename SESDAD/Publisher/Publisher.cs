@@ -50,7 +50,9 @@ namespace Publisher
 
         private IBroker broker;
 
-        private Dictionary<string, Event> events; 
+        private List<KeyValuePair<string, Event>> events;
+
+      //  private Dictionary<string, Event> events; 
 
         public Publisher(string name, string url, string brokerUrl, IBroker broker)
         {
@@ -58,7 +60,7 @@ namespace Publisher
             this.adress = url;
             this.brokerUrl = brokerUrl;
             this.broker = broker;
-            events = new Dictionary<string, Event>();
+            events = new List<KeyValuePair<string, Event>>();
         }
 
         public void pubEvent(string numberEvents, string topic, string interval)
@@ -88,7 +90,7 @@ namespace Publisher
                 {
                     // Vê a excepção que dá quando corres pela segunda vez
                     this.broker.receivePub(this.name, e);
-                    events.Add(topic, e);
+                    events.Add(new KeyValuePair<string, Event>(topic, e));
                     Console.WriteLine("Creating Event : " + topic);       
                 }
                 catch (Exception ex)
@@ -113,10 +115,10 @@ namespace Publisher
             Console.WriteLine("Address : " + adress);
             Console.WriteLine("BrokerURL : " + brokerUrl);
             Console.WriteLine("Eventos publicados");
-            foreach (Event e in events.Values)
+            foreach (KeyValuePair<string, Event> e in events)
             {
                 i++;
-                Console.WriteLine("Evento nº " + i + "Topic : " + e.getTopic() + " Content : " + e.getContent());
+                Console.WriteLine("Evento nº " + i + "Topic : " + e.Key + " Content : " + e.Value.getContent());
             }
         }
 

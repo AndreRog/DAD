@@ -9,6 +9,7 @@ using System.Runtime.Remoting.Channels;
 using System.Runtime.Remoting.Channels.Tcp;
 using System.Net.Sockets;
 using System.Net;
+using System.Threading;
 
 namespace Broker
 {
@@ -20,12 +21,14 @@ namespace Broker
             char[] delimiter = { ':', '/' };
             string[] arg = args[2].Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
             Console.WriteLine("Broker Application " + arg[2]);
-  
+            Console.WriteLine("Broker Application URL:" + args[3]);
+            Console.WriteLine("Broker Application URL:" + args[2]);
+
 
             TcpChannel brokerChannel = new TcpChannel(Int32.Parse(arg[2]));
             ChannelServices.RegisterChannel(brokerChannel, false);
 
-            Broker broker = new Broker(args[3]);
+            Broker broker = new Broker(args[0],args[3], args[2]);
             RemotingServices.Marshal(broker, "broker", typeof(Broker));
             if (!args[3].Equals("null"))
             {
@@ -47,18 +50,25 @@ namespace Broker
     {
 
         private String parentURL;
+        private string name;
         private List<KeyValuePair<string, Event>> events;
         private Dictionary<string,string> childs;
         private Dictionary<string, string> pubs;
         private Dictionary<string, string> subs;
         private Dictionary<string, string> topicSubs;
-        public Broker(String parent) {
+        private string typeFlood;
+        private string myUrl;
+      
+        public Broker(string name, string parent,string myUrl) {
             this.parentURL = parent;
+            this.name = name;
             this.childs = new Dictionary<string, string>(2);
             this.pubs = new Dictionary<string, string>();
             this.subs = new Dictionary<string, string>();
             this.topicSubs = new Dictionary<string, string>();
             this.events = new List<KeyValuePair<string, Event>>();
+            this.typeFlood = "NO";
+            this.myUrl = myUrl;
         }
 
         public bool hasChild()
@@ -90,7 +100,7 @@ namespace Broker
         {
             Console.WriteLine("Received Publish");
             events.Add( new KeyValuePair<string,Event>(name, e));
-            //sendAll(e);
+            propagate(e);
             return "ACK";
         }
 
@@ -170,9 +180,87 @@ namespace Broker
             Console.WriteLine("Numero de eventos : "+i);
         }
 
-        public void flood()
+
+        public void propagate(Event e)
         {
-            int i,j;
+            if (this.typeFlood.Equals("NO")) {
+                Thread thread = new Thread(() => this.floodNoOrder(e));
+                thread.Start();
+            }
+        }
+
+        public void floodNoOrder(Event e)
+        {
+            Console.WriteLine("Flooding Started");
+            string lastHop = e.getLastHop();
+            e.setLastHop(this.myUrl);
+            if (lastHop.Equals("null"))
+            {
+                
+
+                if (! (parentURL.Equals("null")))
+                {
+
+                    IBroker parent = (IBroker)Activator.GetObject(
+                    typeof(IBroker),
+                    this.parentURL);
+
+                    parent.receivePub(this.name, e);
+
+                }
+                if (!(childs.Count == 0))
+                {
+
+                    foreach (string childurl in childs.Values)
+                    {
+                        IBroker child = (IBroker)Activator.GetObject(
+                            typeof(IBroker),
+                            childurl);
+
+                        child.receivePub(this.name, e);
+                    }
+                }
+            }
+            else
+            {
+                if (!(this.parentURL.Equals("null")) && !(this.parentURL.Equals(lastHop)))
+                {
+
+                    IBroker parent = (IBroker)Activator.GetObject(
+                            typeof(IBroker),
+                            this.parentURL);
+
+                    parent.receivePub(this.name, e);
+                }
+                if (!(childs.Count == 0))
+                {
+                    foreach (string childurl in childs.Values)
+                    {
+                        if (!(childurl.Equals(lastHop)))
+                        {
+                          IBroker child = (IBroker)Activator.GetObject(
+                                typeof(IBroker),
+                               childurl);
+
+                          child.receivePub(this.name, e);
+                        }
+                    }
+                }
+            }
+        }
+
+        public void printevents()
+        {
+
+            //foreach();
+        }
+
+
+
+
+
+        //ANTIGO FLOOD DO RUI 
+        /*            int i,j;
 
             string url;
             string topicName;
@@ -194,7 +282,6 @@ namespace Broker
                         sub.receiveEvent(topicName, e);
                     }
                 }
-            }
-        }
+            }*/
     }
 }

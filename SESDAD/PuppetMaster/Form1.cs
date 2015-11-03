@@ -22,12 +22,18 @@ namespace PuppetMaster
     {
         private PuppetMaster puppet;
         public delegate void UpdateListMessage(string msg);
+        //public delegate void EnableView(bool Master); 
         public UpdateListMessage myDelegate;
+        //public EnableView enableDelegate;
         
         public Form1()
         {
             InitializeComponent();
             myDelegate = new UpdateListMessage(add_Message_List);
+           // enableDelegate = new EnableView(viewEnable);
+
+            //scriptbox.Enabled = false;
+            //textBox2.Enabled = false;
             puppet = new PuppetMaster(this);
 
         }
@@ -42,6 +48,18 @@ namespace PuppetMaster
         {
             MsgViewBox.Items.Add("[" + msg + "]: ");
         }
+
+
+        //Puppet Modification trial - error
+        //private void viewEnable(bool type)
+        //{
+        //    if (type == true)
+        //    {
+        //        scriptbox.Enabled = true;
+        //        textBox2.Enabled = true;
+        //    }
+
+        //}
 
         private void execute_Click(object sender, EventArgs e)
         {
@@ -165,10 +183,15 @@ namespace PuppetMaster
         public void config(String line) {
 
             if(line.Equals("MASTER") || line.Equals("SLAVE")){
-                if(line.Equals("MASTER")) 
+                if (line.Equals("MASTER"))
+                {
                     this.master = true;
+                  //  formP.BeginInvoke(formP.enableDelegate, true);
+                }
                 else
+                {
                     this.master = false;
+                }
             }
             else if(line.Contains("SITE")) {
                 string[] s = line.Split(new char[0], StringSplitOptions.RemoveEmptyEntries);
@@ -331,7 +354,7 @@ namespace PuppetMaster
         public void status()
         {
             Console.WriteLine("Making Status");
-            int i;
+           // int i;
             foreach (string s in brokers.Values)
             {
                 Console.WriteLine("Broker : " + s);
