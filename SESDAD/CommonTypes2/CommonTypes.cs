@@ -10,7 +10,7 @@ namespace CommonTypes
 
     public interface IBroker 
     {
-
+        
         void addChild(string name,string url);
         void addPublisher(string name, string url);
         void addSubscriber(string name, string url);

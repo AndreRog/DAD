@@ -101,6 +101,7 @@ namespace Broker
             Console.WriteLine("Received Publish");
             events.Add( new KeyValuePair<string,Event>(name, e));
             propagate(e);
+            sendToSubscriber(e);
             return "ACK";
         }
 
@@ -249,39 +250,32 @@ namespace Broker
             }
         }
 
+        public void sendToSubscriber(Event e)
+        {
+            foreach (KeyValuePair<string,string> kvp in subs)
+            {
+                if (funcaoMegaFodida(kvp))
+                {
+                    ISubscriber sub = (ISubscriber)Activator.GetObject(
+                    typeof(ISubscriber),
+                    kvp.Value);
+                    Console.WriteLine("Sending to : " + kvp.Key);
+
+                    sub.receiveEvent(e.getTopic(), e);
+                }
+            }
+        }
+
+        private bool funcaoMegaFodida(KeyValuePair<string,string> kvp)
+        {
+
+            return true;
+        }
+
         public void printevents()
         {
 
             //foreach();
         }
-
-
-
-
-
-        //ANTIGO FLOOD DO RUI 
-        /*            int i,j;
-
-            string url;
-            string topicName;
-            Event e;
-
-            for(i=0; i < events.Count(); i++){
-                topicName = events[i].Key;
-                e = events[i].Value;
-                for (j = 0; j < topicSubs.Count(); j++)
-                {
-
-                    if (topicSubs.ContainsKey(topicName))
-                    {
-                        topicSubs.TryGetValue(topicName,out url);
-                        Console.WriteLine("URL : " + url);
-                        ISubscriber sub = (ISubscriber)Activator.GetObject(
-                            typeof(ISubscriber),
-                            url);
-                        sub.receiveEvent(topicName, e);
-                    }
-                }
-            }*/
     }
 }

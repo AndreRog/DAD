@@ -35,18 +35,33 @@
             this.execute = new System.Windows.Forms.Button();
             this.button2 = new System.Windows.Forms.Button();
             this.MsgViewBox = new System.Windows.Forms.ListBox();
+            this.typePM = new System.Windows.Forms.TextBox();
+            this.PuppetMURL = new System.Windows.Forms.TextBox();
+            this.Type = new System.Windows.Forms.Label();
+            this.label3 = new System.Windows.Forms.Label();
+            this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.addSlave = new System.Windows.Forms.Button();
+            this.SlaveURL = new System.Windows.Forms.TextBox();
+            this.label4 = new System.Windows.Forms.Label();
+            this.PMConfig = new System.Windows.Forms.Button();
+            this.groupBox2 = new System.Windows.Forms.GroupBox();
+            this.siteBox = new System.Windows.Forms.TextBox();
+            this.Site = new System.Windows.Forms.Label();
+            this.checkSingle = new System.Windows.Forms.CheckBox();
+            this.groupBox1.SuspendLayout();
+            this.groupBox2.SuspendLayout();
             this.SuspendLayout();
             // 
             // scriptbox
             // 
-            this.scriptbox.Location = new System.Drawing.Point(85, 50);
+            this.scriptbox.Location = new System.Drawing.Point(82, 34);
             this.scriptbox.Name = "scriptbox";
             this.scriptbox.Size = new System.Drawing.Size(269, 20);
             this.scriptbox.TabIndex = 0;
             // 
             // textBox2
             // 
-            this.textBox2.Location = new System.Drawing.Point(85, 98);
+            this.textBox2.Location = new System.Drawing.Point(82, 79);
             this.textBox2.Name = "textBox2";
             this.textBox2.Size = new System.Drawing.Size(268, 20);
             this.textBox2.TabIndex = 1;
@@ -54,7 +69,7 @@
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(21, 50);
+            this.label1.Location = new System.Drawing.Point(6, 34);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(44, 13);
             this.label1.TabIndex = 2;
@@ -63,7 +78,7 @@
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(8, 98);
+            this.label2.Location = new System.Drawing.Point(6, 79);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(57, 13);
             this.label2.TabIndex = 3;
@@ -71,7 +86,7 @@
             // 
             // execute
             // 
-            this.execute.Location = new System.Drawing.Point(390, 50);
+            this.execute.Location = new System.Drawing.Point(383, 34);
             this.execute.Name = "execute";
             this.execute.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
             this.execute.Size = new System.Drawing.Size(107, 25);
@@ -82,7 +97,7 @@
             // 
             // button2
             // 
-            this.button2.Location = new System.Drawing.Point(391, 98);
+            this.button2.Location = new System.Drawing.Point(383, 79);
             this.button2.Name = "button2";
             this.button2.Size = new System.Drawing.Size(106, 26);
             this.button2.TabIndex = 5;
@@ -92,28 +107,157 @@
             // 
             // MsgViewBox
             // 
+            this.MsgViewBox.BackColor = System.Drawing.SystemColors.WindowText;
+            this.MsgViewBox.ForeColor = System.Drawing.Color.Lime;
             this.MsgViewBox.FormattingEnabled = true;
-            this.MsgViewBox.Location = new System.Drawing.Point(520, 50);
+            this.MsgViewBox.Location = new System.Drawing.Point(607, 12);
             this.MsgViewBox.Name = "MsgViewBox";
-            this.MsgViewBox.Size = new System.Drawing.Size(226, 173);
+            this.MsgViewBox.Size = new System.Drawing.Size(392, 420);
             this.MsgViewBox.TabIndex = 6;
             this.MsgViewBox.SelectedIndexChanged += new System.EventHandler(this.MsgViewBox_SelectedIndexChanged);
+            // 
+            // typePM
+            // 
+            this.typePM.Location = new System.Drawing.Point(82, 25);
+            this.typePM.Name = "typePM";
+            this.typePM.Size = new System.Drawing.Size(100, 20);
+            this.typePM.TabIndex = 7;
+            // 
+            // PuppetMURL
+            // 
+            this.PuppetMURL.Location = new System.Drawing.Point(82, 51);
+            this.PuppetMURL.Name = "PuppetMURL";
+            this.PuppetMURL.Size = new System.Drawing.Size(268, 20);
+            this.PuppetMURL.TabIndex = 8;
+            // 
+            // Type
+            // 
+            this.Type.AutoSize = true;
+            this.Type.Location = new System.Drawing.Point(6, 25);
+            this.Type.Name = "Type";
+            this.Type.Size = new System.Drawing.Size(31, 13);
+            this.Type.TabIndex = 9;
+            this.Type.Text = "Type";
+            // 
+            // label3
+            // 
+            this.label3.AutoSize = true;
+            this.label3.Location = new System.Drawing.Point(6, 51);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(48, 13);
+            this.label3.TabIndex = 10;
+            this.label3.Text = "PM URL";
+            // 
+            // groupBox1
+            // 
+            this.groupBox1.Controls.Add(this.Site);
+            this.groupBox1.Controls.Add(this.siteBox);
+            this.groupBox1.Controls.Add(this.addSlave);
+            this.groupBox1.Controls.Add(this.SlaveURL);
+            this.groupBox1.Controls.Add(this.label4);
+            this.groupBox1.Controls.Add(this.PMConfig);
+            this.groupBox1.Controls.Add(this.Type);
+            this.groupBox1.Controls.Add(this.typePM);
+            this.groupBox1.Controls.Add(this.PuppetMURL);
+            this.groupBox1.Controls.Add(this.label3);
+            this.groupBox1.Location = new System.Drawing.Point(2, 48);
+            this.groupBox1.Name = "groupBox1";
+            this.groupBox1.Size = new System.Drawing.Size(466, 117);
+            this.groupBox1.TabIndex = 11;
+            this.groupBox1.TabStop = false;
+            this.groupBox1.Text = "PuppetMaster";
+            // 
+            // addSlave
+            // 
+            this.addSlave.Location = new System.Drawing.Point(372, 87);
+            this.addSlave.Name = "addSlave";
+            this.addSlave.Size = new System.Drawing.Size(75, 23);
+            this.addSlave.TabIndex = 14;
+            this.addSlave.Text = "Add";
+            this.addSlave.UseVisualStyleBackColor = true;
+            // 
+            // SlaveURL
+            // 
+            this.SlaveURL.Location = new System.Drawing.Point(82, 87);
+            this.SlaveURL.Name = "SlaveURL";
+            this.SlaveURL.Size = new System.Drawing.Size(268, 20);
+            this.SlaveURL.TabIndex = 13;
+            // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.Location = new System.Drawing.Point(6, 87);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(59, 13);
+            this.label4.TabIndex = 12;
+            this.label4.Text = "Slave URL";
+            // 
+            // PMConfig
+            // 
+            this.PMConfig.Location = new System.Drawing.Point(372, 51);
+            this.PMConfig.Name = "PMConfig";
+            this.PMConfig.Size = new System.Drawing.Size(75, 23);
+            this.PMConfig.TabIndex = 11;
+            this.PMConfig.Text = "Configure";
+            this.PMConfig.UseVisualStyleBackColor = true;
+            // 
+            // groupBox2
+            // 
+            this.groupBox2.Controls.Add(this.label2);
+            this.groupBox2.Controls.Add(this.scriptbox);
+            this.groupBox2.Controls.Add(this.textBox2);
+            this.groupBox2.Controls.Add(this.execute);
+            this.groupBox2.Controls.Add(this.button2);
+            this.groupBox2.Controls.Add(this.label1);
+            this.groupBox2.Location = new System.Drawing.Point(2, 182);
+            this.groupBox2.Name = "groupBox2";
+            this.groupBox2.Size = new System.Drawing.Size(518, 125);
+            this.groupBox2.TabIndex = 12;
+            this.groupBox2.TabStop = false;
+            this.groupBox2.Text = "Scripts";
+            // 
+            // siteBox
+            // 
+            this.siteBox.Location = new System.Drawing.Point(250, 25);
+            this.siteBox.Name = "siteBox";
+            this.siteBox.Size = new System.Drawing.Size(100, 20);
+            this.siteBox.TabIndex = 15;
+            // 
+            // Site
+            // 
+            this.Site.AutoSize = true;
+            this.Site.Location = new System.Drawing.Point(219, 25);
+            this.Site.Name = "Site";
+            this.Site.Size = new System.Drawing.Size(25, 13);
+            this.Site.TabIndex = 16;
+            this.Site.Text = "Site";
+            // 
+            // checkSingle
+            // 
+            this.checkSingle.AutoSize = true;
+            this.checkSingle.Location = new System.Drawing.Point(11, 25);
+            this.checkSingle.Name = "checkSingle";
+            this.checkSingle.Size = new System.Drawing.Size(96, 17);
+            this.checkSingle.TabIndex = 13;
+            this.checkSingle.Text = "SingleMachine";
+            this.checkSingle.UseVisualStyleBackColor = true;
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.SystemColors.Control;
-            this.ClientSize = new System.Drawing.Size(758, 262);
+            this.ClientSize = new System.Drawing.Size(1009, 445);
+            this.Controls.Add(this.checkSingle);
+            this.Controls.Add(this.groupBox2);
+            this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.MsgViewBox);
-            this.Controls.Add(this.button2);
-            this.Controls.Add(this.execute);
-            this.Controls.Add(this.label2);
-            this.Controls.Add(this.label1);
-            this.Controls.Add(this.textBox2);
-            this.Controls.Add(this.scriptbox);
             this.Name = "Form1";
             this.Text = "Form1";
+            this.groupBox1.ResumeLayout(false);
+            this.groupBox1.PerformLayout();
+            this.groupBox2.ResumeLayout(false);
+            this.groupBox2.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -128,6 +272,19 @@
         private System.Windows.Forms.Button execute;
         private System.Windows.Forms.Button button2;
         private System.Windows.Forms.ListBox MsgViewBox;
+        private System.Windows.Forms.TextBox typePM;
+        private System.Windows.Forms.TextBox PuppetMURL;
+        private System.Windows.Forms.Label Type;
+        private System.Windows.Forms.Label label3;
+        private System.Windows.Forms.GroupBox groupBox1;
+        private System.Windows.Forms.Button PMConfig;
+        private System.Windows.Forms.GroupBox groupBox2;
+        private System.Windows.Forms.TextBox SlaveURL;
+        private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.Button addSlave;
+        private System.Windows.Forms.TextBox siteBox;
+        private System.Windows.Forms.Label Site;
+        private System.Windows.Forms.CheckBox checkSingle;
     }
 }
 

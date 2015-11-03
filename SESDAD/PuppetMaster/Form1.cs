@@ -22,20 +22,40 @@ namespace PuppetMaster
     {
         private PuppetMaster puppet;
         public delegate void UpdateListMessage(string msg);
-        //public delegate void EnableView(bool Master); 
         public UpdateListMessage myDelegate;
-        //public EnableView enableDelegate;
+        public bool singleMachine;
+
         
-        public Form1()
+        public Form1(string args)
         {
             InitializeComponent();
+            singleMachine = false;
             myDelegate = new UpdateListMessage(add_Message_List);
-           // enableDelegate = new EnableView(viewEnable);
 
-            //scriptbox.Enabled = false;
-            //textBox2.Enabled = false;
             puppet = new PuppetMaster(this);
+            if (args.Equals("-singleMachine"))
+            {
+                singleMachine = true;
+            }
+            scriptbox.Enabled = false;
+            textBox2.Enabled = false;
+            InitCheck();
+        }
 
+        private void InitCheck() {
+            string cfgpath = @"..\..\..\cfg.txt";
+            StreamReader script = new StreamReader(cfgpath);
+            String Line;
+
+            while ((Line = script.ReadLine()) != null)
+            {
+                if (Line.Equals("MASTER"))
+                {
+                    scriptbox.Enabled = true;
+                    textBox2.Enabled = true;
+                }
+
+            }
         }
 
         private void button2_Click(object sender, EventArgs e)
@@ -48,18 +68,6 @@ namespace PuppetMaster
         {
             MsgViewBox.Items.Add("[" + msg + "]: ");
         }
-
-
-        //Puppet Modification trial - error
-        //private void viewEnable(bool type)
-        //{
-        //    if (type == true)
-        //    {
-        //        scriptbox.Enabled = true;
-        //        textBox2.Enabled = true;
-        //    }
-
-        //}
 
         private void execute_Click(object sender, EventArgs e)
         {

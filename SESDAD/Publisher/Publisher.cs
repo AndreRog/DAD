@@ -95,7 +95,7 @@ namespace Publisher
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Bad connection" + ex.Message);
+                    Console.WriteLine("Exception message : " + ex.Message);
                 }
                 Thread.Sleep(sleep);
             }
