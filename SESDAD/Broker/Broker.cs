@@ -252,10 +252,12 @@ namespace Broker
 
         public void sendToSubscriber(Event e)
         {
-            foreach (KeyValuePair<string,string> kvp in subs)
+
+            foreach (KeyValuePair<string,string> kvp in topicSubs)
             {
-                if (funcaoMegaFodida(kvp))
+                if (itsForSend(kvp , e.getTopic()))
                 {
+
                     ISubscriber sub = (ISubscriber)Activator.GetObject(
                     typeof(ISubscriber),
                     kvp.Value);
@@ -266,10 +268,39 @@ namespace Broker
             }
         }
 
-        private bool funcaoMegaFodida(KeyValuePair<string,string> kvp)
+        private bool itsForSend(KeyValuePair<string, string> kvp, string topic)
         {
+            string PathSub = kvp.Key;
+            string url = kvp.Value;
+            string pathEvento = topic;
 
-            return true;
+            if (PathSub.Equals(pathEvento))
+            {
+                return true;
+            }
+
+            char[] delimiter = {'/'};
+            string asterisco = "*";
+            string[] pathSub = PathSub.Split(delimiter);
+            string[] path = pathEvento.Split(delimiter);
+
+            int niveis = pathSub.Count();
+            int i = 1;
+            bool isForSent = false;
+
+            while (niveis >= i)
+	        {
+               if (pathSub[i].Equals(path[i]))
+                {
+                    i++;
+                }
+               if (pathSub[i].Equals(asterisco))
+                {
+                    isForSent = true;
+                    break;
+                }         
+	        }
+            return isForSent;
         }
 
         public void printevents()
