@@ -260,7 +260,7 @@ namespace Broker
                     typeof(ISubscriber),
                     kvp.Value);
                     Console.WriteLine("Sending to : " + kvp.Value);
-                    sub.receiveEvent(e.getTopic(), e);
+                    sub.receiveEvent(e.getSender(), e);
                     sendToPM("SubEvent "+sub.getName()+" , "+e.getSender()+" , "+e.getTopic()+" , "+e.getNumber());
                 }
             }

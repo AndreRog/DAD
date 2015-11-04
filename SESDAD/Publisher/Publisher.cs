@@ -90,13 +90,13 @@ namespace Publisher
                 {
                     // Vê a excepção que dá quando corres pela segunda vez
                     this.broker.receivePub(this.name, e);
-                    events.Add(new KeyValuePair<string, Event>(topic, e));
+                    events.Add(new KeyValuePair<string, Event>(name, e));
                     Console.WriteLine("Creating Event : " + topic);
                     
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Exception message : " + ex.Message);
+                    Console.WriteLine("Exception message : " + ex.ToString());
                 }
                 Thread.Sleep(sleep);
             }

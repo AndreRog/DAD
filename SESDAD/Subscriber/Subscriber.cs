@@ -50,7 +50,8 @@ namespace Subscriber
 
         private IBroker broker;
 
-        private Dictionary<string, Event> eventsReceived;
+        private List<KeyValuePair<string, Event>> eventsReceived;
+        //private Dictionary<string, Event> eventsReceived;
 
         public Subscriber(string name, string url, string brokerUrl, IBroker broker)
         {
@@ -58,7 +59,7 @@ namespace Subscriber
             this.adress = url;
             this.brokerUrl = brokerUrl;
             this.broker = broker;
-            eventsReceived = new Dictionary<string, Event>();
+            eventsReceived = new List<KeyValuePair<string, Event>>();
         }
 
         public string getName()
@@ -94,19 +95,16 @@ namespace Subscriber
 
         public void displayEvents()
         {
-            foreach (string s in eventsReceived.Keys)
+            foreach (KeyValuePair<string,Event> kvp in eventsReceived)
             {
-                Console.WriteLine("Event : " + s);
+                Console.WriteLine("Event de : " + kvp.Key+" sobre : "+kvp.Value.getTopic());
             }
         }
 
-        public void receiveEvent(string topic, Event e)
+        public void receiveEvent(string name, Event e)
         {
-            if (!(eventsReceived.ContainsValue(e)))
-            {
-                this.eventsReceived.Add(topic, e);
-                Console.WriteLine("Evento Recebido : " + topic);
-            }
+            this.eventsReceived.Add(new KeyValuePair<string, Event>(name, e));
+            Console.WriteLine("Evento Recebido de "+e.getSender()+" sobre " + e.getTopic());
         }
 
         public void crash()
@@ -122,10 +120,9 @@ namespace Subscriber
             Console.WriteLine("Address : " + adress);
             Console.WriteLine("BrokerURL : " + brokerUrl);
             Console.WriteLine("Eventos recebidos");
-            foreach (Event e in eventsReceived.Values)
+            foreach (KeyValuePair<string, Event> kvp in eventsReceived)
             {
-                i++;
-                Console.WriteLine("Evento nº " + i + "Topic : " + e.getTopic() + " Content : " + e.getContent());
+                Console.WriteLine("Event de : " + kvp.Key + " sobre : " + kvp.Value.getTopic());
             }
         }
     }
