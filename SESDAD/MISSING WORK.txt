@@ -1,16 +1,25 @@
 Falta quando fazemos o flood, também mandar para os subscribers.
 
-Falta começar a receber eventos com topicos realmente corretos no formato :
 
-	ist/utl/pt (etc....)
-	ist/*
+Formatos ja estao correctos.
+
+Envio de varios eventos ja esta corrigido
 
 
 ------->FECHAR O PM<------------------------------------
 
+
+
+
 Falta por o puppet a 100% - probably my next step André
 
+
+
+
 Falta as assyncCalls - probably my next step André
+
+
+
 
 
 E FALTA MAIS!
