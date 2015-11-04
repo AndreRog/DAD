@@ -84,14 +84,15 @@ namespace Publisher
             for (i = 0; i < times; i++)
             {
 
-                e = new Event(topic, "" + i);
+                e = new Event(topic, "",this.name, i);
 
                 try
                 {
                     // Vê a excepção que dá quando corres pela segunda vez
                     this.broker.receivePub(this.name, e);
                     events.Add(new KeyValuePair<string, Event>(topic, e));
-                    Console.WriteLine("Creating Event : " + topic);       
+                    Console.WriteLine("Creating Event : " + topic);
+                    
                 }
                 catch (Exception ex)
                 {

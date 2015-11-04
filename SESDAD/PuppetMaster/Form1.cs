@@ -32,7 +32,7 @@ namespace PuppetMaster
             singleMachine = false;
             myDelegate = new UpdateListMessage(add_Message_List);
 
-
+            
             if (args.Equals("-singleMachine"))
             {
                 singleMachine = true;
@@ -80,7 +80,12 @@ namespace PuppetMaster
 
         private void add_Message_List(String msg)
         {
-            MsgViewBox.Items.Add("[" + msg + "]: ");
+            MsgViewBox.Items.Add(msg);
+        }
+
+        private void add_Message_Sub(string processnameS, string processnameP, string topicName, string eventNumber)
+        {
+            MsgViewBox.Items.Add("SubEvent "+processnameS+" , "+ processnameP+" , "+topicName+" , "+eventNumber);
         }
 
         private void execute_Click(object sender, EventArgs e)
@@ -104,8 +109,13 @@ namespace PuppetMaster
                 return;
             }
 
+            if (!(commands.StartsWith("Site")))
+            {
+                add_Message_List(commands);
+            }
+            
             String[] command = commands.Split(new char[0], StringSplitOptions.RemoveEmptyEntries);
-
+            
             switch (command[0])
             {
 
@@ -253,7 +263,6 @@ namespace PuppetMaster
                 String arguments = name + " " + site + " " + URL + " " + URLParent;
                 String filename = @"..\..\..\Broker\bin\Debug\Broker.exe";
                 Process.Start(filename, arguments);
-                formP.BeginInvoke(formP.myDelegate, URL);
             }
             else
             {
@@ -276,8 +285,6 @@ namespace PuppetMaster
                 String arguments = name + " " + site + " " + url + " " + urlbroker;
                 String filename = @"..\..\..\Subscriber\bin\Debug\Subscriber.exe";
                 Process.Start(filename, arguments);
-                formP.BeginInvoke(formP.myDelegate, url);
-
             }
             else
             {
@@ -300,8 +307,6 @@ namespace PuppetMaster
                 String arguments = name + " " + site + " " + url + " " + urlbroker;
                 String filename = @"..\..\..\Publisher\bin\Debug\Publisher.exe";
                 Process.Start(filename, arguments);
-                formP.BeginInvoke(formP.myDelegate, url);
-
             }
             else
             {
@@ -322,7 +327,6 @@ namespace PuppetMaster
             {
                 Console.WriteLine(subsWithUrl[processName]);
 
-                formP.BeginInvoke(formP.myDelegate, "Subscription");
                 ISubscriber subscriber = (ISubscriber)Activator.GetObject(
                       typeof(ISubscriber),
                              this.subsWithUrl[processName]);
@@ -337,7 +341,6 @@ namespace PuppetMaster
             {
                 Console.WriteLine(subsWithUrl[processName]);
 
-                formP.BeginInvoke(formP.myDelegate, subsWithUrl[processName]);
                 ISubscriber subscriber = (ISubscriber)Activator.GetObject(
                       typeof(ISubscriber),
                              this.subsWithUrl[processName]);
@@ -353,11 +356,8 @@ namespace PuppetMaster
 
             if (this.single || this.site == (this.pubWithSite[processName]))
             {
-
-
                 Console.WriteLine(pubWithUrl[processName]);
 
-                formP.BeginInvoke(formP.myDelegate, "Publish");
                 IPublisher publisher = (IPublisher)Activator.GetObject(
                       typeof(IPublisher),
                              this.pubWithUrl[processName]);
@@ -456,6 +456,11 @@ namespace PuppetMaster
         {
             Console.WriteLine("Unfreezing " + processName);
             throw new NotImplementedException();
+        }
+
+        public void toLog(string msg)
+        {
+            formP.BeginInvoke(formP.myDelegate, msg);
         }
     }
 }

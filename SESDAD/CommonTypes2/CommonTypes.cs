@@ -23,6 +23,7 @@ namespace CommonTypes
 
     public interface ISubscriber
     {
+        string getName();
         void subEvent(string topic);
         void displayEvents();
         void receiveEvent(string topic, Event e);
@@ -42,6 +43,7 @@ namespace CommonTypes
     {
         void addBroker(string name, string site, string url, string urlbroker);
         void addSubscriber(string name, string site, string url, string urlbroker);
+        void toLog(string msg);
     }
 
     [Serializable]
@@ -50,15 +52,19 @@ namespace CommonTypes
         private string topic;
 
         private string content;
+        private string sender;
+        private int number;
 
         private string lastHop;
         
        // private int seq;
 
-        public Event(string topic, string content)
+        public Event(string topic, string content,string sender, int number)
         {
             this.topic = topic;
             this.content = content;
+            this.sender = sender;
+            this.number = number;
             this.lastHop = "null";
         }
 
@@ -78,6 +84,16 @@ namespace CommonTypes
 
         public void setLastHop(string s){
             this.lastHop = s;
+        }
+
+        public string getSender()
+        {
+            return sender;
+        }
+
+        public int getNumber()
+        {
+            return number;
         }
     }
 

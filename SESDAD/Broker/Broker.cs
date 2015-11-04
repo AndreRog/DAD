@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -57,6 +58,7 @@ namespace Broker
         private Dictionary<string, string> subs;
         private Dictionary<string, string> topicSubs;
         private string typeFlood;
+        private bool lightLog = true;
         private string myUrl;
       
         public Broker(string name, string parent,string myUrl) {
@@ -99,6 +101,10 @@ namespace Broker
         public string receivePub(string name, Event e)
         {
             Console.WriteLine("Received Publish");
+            if (!(name.StartsWith("broker")))
+            {
+                sendToPM("PubEvent " + name + " , " + e.getSender() + " , " + e.getTopic() + " , " + e.getNumber());
+            }
             events.Add( new KeyValuePair<string,Event>(name, e));
             propagate(e);
             sendToSubscriber(e);
@@ -126,18 +132,6 @@ namespace Broker
         public void crash()
         {
             Environment.Exit(-1);
-        }
-
-        public void sendAll(Event e)
-        {
-            foreach (string s in subs.Values)
-            {
-                ISubscriber sub = (ISubscriber)Activator.GetObject(
-                            typeof(ISubscriber),
-                            s);
-                Console.WriteLine(e.getTopic());
-                sub.receiveEvent(e.getTopic(), e);
-            }
         }
 
         public void status()
@@ -207,6 +201,7 @@ namespace Broker
                     this.parentURL);
 
                     parent.receivePub(this.name, e);
+                    sendToPM("BroEvent " + name + " , " + e.getSender() + " , " + e.getTopic() + " , " + e.getNumber());
 
                 }
                 if (!(childs.Count == 0))
@@ -219,6 +214,7 @@ namespace Broker
                             childurl);
 
                         child.receivePub(this.name, e);
+                        sendToPM("BroEvent " + name + " , " + e.getSender() + " , " + e.getTopic() + " , " + e.getNumber());
                     }
                 }
             }
@@ -232,6 +228,7 @@ namespace Broker
                             this.parentURL);
 
                     parent.receivePub(this.name, e);
+                    sendToPM("BroEvent " + name + " , " + e.getSender() + " , " + e.getTopic() + " , " + e.getNumber());
                 }
                 if (!(childs.Count == 0))
                 {
@@ -244,6 +241,7 @@ namespace Broker
                                childurl);
 
                           child.receivePub(this.name, e);
+                          sendToPM("BroEvent " + name + " , " + e.getSender() + " , " + e.getTopic() + " , " + e.getNumber());
                         }
                     }
                 }
@@ -261,9 +259,9 @@ namespace Broker
                     ISubscriber sub = (ISubscriber)Activator.GetObject(
                     typeof(ISubscriber),
                     kvp.Value);
-                    Console.WriteLine("Sending to : " + kvp.Key);
-
+                    Console.WriteLine("Sending to : " + kvp.Value);
                     sub.receiveEvent(e.getTopic(), e);
+                    sendToPM("SubEvent "+sub.getName()+" , "+e.getSender()+" , "+e.getTopic()+" , "+e.getNumber());
                 }
             }
         }
@@ -307,6 +305,21 @@ namespace Broker
         {
 
             //foreach();
+        }
+
+        public void sendToPM(string msg)
+        {
+            if (!(msg.StartsWith("BroEvent") && lightLog))
+            {
+                string cfgpath = @"..\..\..\cfg.txt";
+                StreamReader script = new StreamReader(cfgpath);
+                String Line = script.ReadLine();
+
+                IPuppetMaster pm = (IPuppetMaster)Activator.GetObject(
+                            typeof(IPuppetMaster),
+                            Line);
+                pm.toLog(msg);
+            }
         }
     }
 }

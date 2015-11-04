@@ -61,6 +61,11 @@ namespace Subscriber
             eventsReceived = new Dictionary<string, Event>();
         }
 
+        public string getName()
+        {
+            return name;
+        }
+
         public void subEvent(string topic)
         {
             try
