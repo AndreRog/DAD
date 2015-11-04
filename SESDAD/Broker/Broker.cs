@@ -53,10 +53,12 @@ namespace Broker
         private String parentURL;
         private string name;
         private List<KeyValuePair<string, Event>> events;
+        private Queue<Event> queueEvents;
         private Dictionary<string,string> childs;
         private Dictionary<string, string> pubs;
         private Dictionary<string, string> subs;
         private Dictionary<string, string> topicSubs;
+        private Dictionary<string, int> lastSeqNumber;
         private string typeFlood;
         private bool lightLog = true;
         private string myUrl;
@@ -69,6 +71,7 @@ namespace Broker
             this.subs = new Dictionary<string, string>();
             this.topicSubs = new Dictionary<string, string>();
             this.events = new List<KeyValuePair<string, Event>>();
+            this.queueEvents = new Queue<Event>();
             this.typeFlood = "NO";
             this.myUrl = myUrl;
         }
@@ -105,9 +108,18 @@ namespace Broker
             {
                 sendToPM("PubEvent " + name + " , " + e.getSender() + " , " + e.getTopic() + " , " + e.getNumber());
             }
-            events.Add( new KeyValuePair<string,Event>(name, e));
-            propagate(e);
-            sendToSubscriber(e);
+
+            if (typeFlood.Equals("FIFO"))
+            {
+                
+            }
+
+            if (typeFlood.Equals("NO"))
+            {
+                events.Add(new KeyValuePair<string,Event>(name, e));
+                propagate(e);
+                sendToSubscriber(e);
+            }
             return "ACK";
         }
 
@@ -175,10 +187,10 @@ namespace Broker
             Console.WriteLine("Numero de eventos : "+i);
         }
 
-
         public void propagate(Event e)
         {
-            if (this.typeFlood.Equals("NO")) {
+            if (this.typeFlood.Equals("NO") || this.typeFlood.Equals("FIFO"))
+            {
                 Thread thread = new Thread(() => this.floodNoOrder(e));
                 thread.Start();
             }
@@ -250,7 +262,6 @@ namespace Broker
 
         public void sendToSubscriber(Event e)
         {
-
             foreach (KeyValuePair<string,string> kvp in topicSubs)
             {
                 if (itsForSend(kvp , e.getTopic()))

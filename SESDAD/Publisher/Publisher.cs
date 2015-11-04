@@ -52,6 +52,8 @@ namespace Publisher
 
         private List<KeyValuePair<string, Event>> events;
 
+        private static int seqNumber = 0;
+
       //  private Dictionary<string, Event> events; 
 
         public Publisher(string name, string url, string brokerUrl, IBroker broker)
@@ -63,14 +65,17 @@ namespace Publisher
             events = new List<KeyValuePair<string, Event>>();
         }
 
+        public int SeqNumber()
+        {
+            return Interlocked.Increment(ref seqNumber);
+        }
+
         public void pubEvent(string numberEvents, string topic, string interval)
         {
 
             //thread bad shit see it
             Thread thread = new Thread(() => this.sendEvent(numberEvents, topic, interval));
             thread.Start();
-
-            
         }
 
         public void sendEvent(string numberEvents, string topic, string interval)
@@ -79,12 +84,13 @@ namespace Publisher
             int times = Int32.Parse(numberEvents);
             int sleep = Int32.Parse(interval);
             int i = 0;
+            int eventNumber;
 
             Console.WriteLine(this.brokerUrl);
             for (i = 0; i < times; i++)
             {
-
-                e = new Event(topic, "",this.name, i);
+                eventNumber = this.SeqNumber();
+                e = new Event(topic, "",this.name, eventNumber);
 
                 try
                 {

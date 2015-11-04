@@ -104,7 +104,7 @@ namespace Subscriber
         public void receiveEvent(string name, Event e)
         {
             this.eventsReceived.Add(new KeyValuePair<string, Event>(name, e));
-            Console.WriteLine("Evento Recebido de "+e.getSender()+" sobre " + e.getTopic());
+            Console.WriteLine("Evento Recebido de "+e.getSender()+" sobre " + e.getTopic()+" EventNumber : "+e.getNumber());
         }
 
         public void crash()

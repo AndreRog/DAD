@@ -37,6 +37,7 @@ namespace CommonTypes
         void pubEvent(string numberEvents, string topicName, string interva);
         void crash();
         void status();
+        int SeqNumber();
     }
 
     public interface IPuppetMaster
