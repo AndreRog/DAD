@@ -160,7 +160,7 @@ namespace PuppetMaster
                     puppet.unfreeze(command[1]);
                     break;
                 case "Wait":
-                    System.Threading.Thread.Sleep(Int32.Parse(command[1]));
+                    puppet.sleep(command[1]);
                     break;
             }
 
@@ -456,6 +456,12 @@ namespace PuppetMaster
         {
             Console.WriteLine("Unfreezing " + processName);
             throw new NotImplementedException();
+        }
+
+        public void sleep(string s)
+        {
+            int sleepTime = Int32.Parse(s);
+            System.Threading.Thread.Sleep(sleepTime);
         }
 
         public void toLog(string msg)
