@@ -51,6 +51,8 @@ namespace Subscriber
         private IBroker broker;
 
         private List<KeyValuePair<string, Event>> eventsReceived;
+        private bool isFrozen = false;
+        private List<FrozenEvent> frozenEvents;
         //private Dictionary<string, Event> eventsReceived;
 
         public Subscriber(string name, string url, string brokerUrl, IBroker broker)
@@ -59,7 +61,8 @@ namespace Subscriber
             this.adress = url;
             this.brokerUrl = brokerUrl;
             this.broker = broker;
-            eventsReceived = new List<KeyValuePair<string, Event>>();
+            this.eventsReceived = new List<KeyValuePair<string, Event>>();
+            this.frozenEvents = new List<FrozenEvent>();
         }
 
         public string getName()
@@ -69,6 +72,12 @@ namespace Subscriber
 
         public void subEvent(string topic)
         {
+            if (isFrozen)
+            {
+                FrozenEvent fe = new FrozenEvent("SUB", topic,adress);
+                frozenEvents.Add(fe);
+                return;
+            }
             try
             {
                 this.broker.subscribe(topic, adress);
@@ -82,6 +91,12 @@ namespace Subscriber
 
         public void UnsubEvent(string topic)
         {
+            if (isFrozen)
+            {
+                FrozenEvent fe = new FrozenEvent("UNSUB", topic, adress);
+                frozenEvents.Add(fe);
+                return;
+            }
             try
             {
                 this.broker.unsubscribe(topic, adress);
@@ -103,6 +118,12 @@ namespace Subscriber
 
         public void receiveEvent(string name, Event e)
         {
+            if (isFrozen)
+            {
+                FrozenEvent fe = new FrozenEvent("EVENT", e);
+                frozenEvents.Add(fe);
+                return;
+            }
             this.eventsReceived.Add(new KeyValuePair<string, Event>(name, e));
             Console.WriteLine("Evento Recebido de "+e.getSender()+" sobre " + e.getTopic()+" EventNumber : "+e.getNumber());
         }
@@ -124,6 +145,39 @@ namespace Subscriber
             {
                 Console.WriteLine("Event de : " + kvp.Key + " sobre : " + kvp.Value.getTopic());
             }
+        }
+
+        public void freeze()
+        {
+            isFrozen = true;
+        }
+
+        public void unfreeze()
+        {
+            isFrozen = false;
+            checkFrozenEvents();
+        }
+
+        public void checkFrozenEvents()
+        {
+            foreach (FrozenEvent fe in frozenEvents)
+            {
+                switch (fe.getEventType())
+                {
+                    case "EVENT":
+                        this.receiveEvent(fe.getEvent().getSender(), fe.getEvent());
+                        break;
+                    case "SUB":
+                        this.subEvent(fe.getName()); //mesmo o nome dos atributos nao corresponder, vai bater tudo certo.
+                        break;
+                    case "UNSUB":
+                        this.UnsubEvent(fe.getName()); //mesmo o nome dos atributos nao corresponder, vai bater tudo certo.
+                        break;
+                }
+
+            }
+
+            frozenEvents = new List<FrozenEvent>();
         }
     }
 }

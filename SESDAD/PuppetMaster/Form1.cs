@@ -166,18 +166,6 @@ namespace PuppetMaster
             }
 
         }
-
-        private void MsgViewBox_SelectedIndexChanged(object sender, EventArgs e)
-        {
-
-        }
-
-        private void Site_Click(object sender, EventArgs e)
-        {
-
-        }
-
-
     }
 
     public class PuppetMaster : MarshalByRefObject, IPuppetMaster
@@ -450,13 +438,77 @@ namespace PuppetMaster
         public void freeze(string processName)
         {
             Console.WriteLine("Freezing " + processName);
-            throw new NotImplementedException();
+            if (this.site.Equals(this.pubWithSite[processName]))
+            {
+                Console.WriteLine(pubWithUrl[processName]);
+
+                formP.BeginInvoke(formP.myDelegate, pubWithUrl[processName]);
+                IPublisher publisher = (IPublisher)Activator.GetObject(
+                      typeof(IPublisher),
+                             this.pubWithUrl[processName]);
+
+                publisher.freeze();
+
+            }else if (this.site.Equals(this.subsWithSite[processName]))
+            {
+                Console.WriteLine(subsWithUrl[processName]);
+
+                formP.BeginInvoke(formP.myDelegate, subsWithUrl[processName]);
+                ISubscriber subscriber = (ISubscriber)Activator.GetObject(
+                      typeof(ISubscriber),
+                             this.subsWithUrl[processName]);
+
+                subscriber.freeze();
+
+            }else if (this.brokers.Equals(this.brokers[processName]))
+            {
+                Console.WriteLine(brokers[processName]);
+
+                formP.BeginInvoke(formP.myDelegate, brokers[processName]);
+                IBroker broker = (IBroker)Activator.GetObject(
+                      typeof(IBroker),
+                             this.brokers[processName]);
+
+                broker.freeze();
+            }
         }
 
         public void unfreeze(string processName)
         {
             Console.WriteLine("Unfreezing " + processName);
-            throw new NotImplementedException();
+            if (this.site.Equals(this.pubWithSite[processName]))
+            {
+                Console.WriteLine(pubWithUrl[processName]);
+
+                formP.BeginInvoke(formP.myDelegate, pubWithUrl[processName]);
+                IPublisher publisher = (IPublisher)Activator.GetObject(
+                      typeof(IPublisher),
+                             this.pubWithUrl[processName]);
+
+                publisher.unfreeze();
+
+            }else if (this.site.Equals(this.subsWithSite[processName]))
+            {
+                Console.WriteLine(subsWithUrl[processName]);
+
+                formP.BeginInvoke(formP.myDelegate, subsWithUrl[processName]);
+                ISubscriber subscriber = (ISubscriber)Activator.GetObject(
+                      typeof(ISubscriber),
+                             this.subsWithUrl[processName]);
+
+                subscriber.unfreeze();
+
+            }else if (this.brokers.Equals(this.brokers[processName]))
+            {
+                Console.WriteLine(brokers[processName]);
+
+                formP.BeginInvoke(formP.myDelegate, brokers[processName]);
+                IBroker broker = (IBroker)Activator.GetObject(
+                      typeof(IBroker),
+                             this.brokers[processName]);
+
+                broker.unfreeze();
+            }
         }
 
         public void sleep(string s)

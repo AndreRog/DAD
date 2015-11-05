@@ -250,6 +250,11 @@
 
         }
 
+        private void MsgViewBox_SelectedIndexChanged(object sender, System.EventArgs e)
+        {
+        
+        }
+
         #endregion
 
         private System.Windows.Forms.TextBox scriptbox;

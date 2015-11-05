@@ -19,6 +19,8 @@ namespace CommonTypes
         string unsubscribe(string topic, string URL);
         void crash();
         void status();
+        void unfreeze();
+        void freeze();
     }
 
     public interface ISubscriber
@@ -30,6 +32,8 @@ namespace CommonTypes
         void UnsubEvent(string topicName);
         void crash();
         void status();
+        void unfreeze();
+        void freeze();
     }
 
     public interface IPublisher
@@ -38,6 +42,8 @@ namespace CommonTypes
         void crash();
         void status();
         int SeqNumber();
+        void unfreeze();
+        void freeze();
     }
 
     public interface IPuppetMaster
@@ -95,6 +101,65 @@ namespace CommonTypes
         public int getNumber()
         {
             return number;
+        }
+    }
+
+    public class FrozenEvent
+    {
+        private string eventType;
+        private string name;
+        private string url;
+        private Event e;
+        private string numberEvents;
+        private string interval;
+
+        public FrozenEvent(string eventType, string name, string url)
+        {
+            this.eventType = eventType;
+            this.name = name;
+            this.url = url;
+        }
+
+        public FrozenEvent(string eventType,Event e)
+        {
+            this.eventType = eventType;
+            this.e = e;
+        }
+
+        public string getNumberEvents()
+        {
+            return numberEvents;
+        }
+
+        public string getInterval()
+        {
+            return interval;
+        }
+
+        public string getEventType()
+        {
+            return eventType;
+        }
+
+        public string getName()
+        {
+            return name;
+        }
+
+        public string getURL()
+        {
+            return url;
+        }
+
+        public Event getEvent()
+        {
+            return e;
+        }
+
+        public bool hasEvent(){
+            if(this.e.Equals(null)){
+                return false;
+            }else return true;
         }
     }
 

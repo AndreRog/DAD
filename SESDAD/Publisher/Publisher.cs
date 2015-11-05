@@ -52,7 +52,11 @@ namespace Publisher
 
         private List<KeyValuePair<string, Event>> events;
 
-        private static int seqNumber = 0;
+        private static int seqNumber = 1;
+
+        private bool isFrozen = false;
+
+        private List<FrozenEvent> frozenEvents;
 
       //  private Dictionary<string, Event> events; 
 
@@ -62,7 +66,8 @@ namespace Publisher
             this.adress = url;
             this.brokerUrl = brokerUrl;
             this.broker = broker;
-            events = new List<KeyValuePair<string, Event>>();
+            this.events = new List<KeyValuePair<string, Event>>();
+            this.frozenEvents = new List<FrozenEvent>();
         }
 
         public int SeqNumber()
@@ -72,7 +77,6 @@ namespace Publisher
 
         public void pubEvent(string numberEvents, string topic, string interval)
         {
-
             //thread bad shit see it
             Thread thread = new Thread(() => this.sendEvent(numberEvents, topic, interval));
             thread.Start();
@@ -91,6 +95,12 @@ namespace Publisher
             {
                 eventNumber = this.SeqNumber();
                 e = new Event(topic, "",this.name, eventNumber);
+
+                if (isFrozen)
+                {
+                    FrozenEvent fe = new FrozenEvent(numberEvents, topic, interval);
+                    frozenEvents.Add(fe);
+                }
 
                 try
                 {
@@ -127,6 +137,26 @@ namespace Publisher
                 i++;
                 Console.WriteLine("Evento nº " + i + "Topic : " + e.Key + " Content : " + e.Value.getContent());
             }
+        }
+
+        public void freeze()
+        {
+            isFrozen = true;
+        }
+
+        public void unfreeze()
+        {
+            isFrozen = false;
+            checkFrozenEvents();
+        }
+
+        public void checkFrozenEvents()
+        {
+            foreach (FrozenEvent fe in frozenEvents)
+            {
+                this.pubEvent(fe.getEventType(), fe.getName(), fe.getURL());                  
+            }
+            frozenEvents = new List<FrozenEvent>();
         }
 
     }
