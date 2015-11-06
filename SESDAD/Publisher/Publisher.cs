@@ -73,6 +73,7 @@ namespace Publisher
         public int SeqNumber()
         {
             return Interlocked.Increment(ref seqNumber);
+
         }
 
         public void pubEvent(string numberEvents, string topic, string interval)

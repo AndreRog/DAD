@@ -33,7 +33,7 @@ namespace PuppetMaster
             singleMachine = false;
             myDelegate = new UpdateListMessage(add_Message_List);
             sitesT = new Dictionary<string, string>();
-            
+
             if (args.Equals("-singleMachine"))
             {
                 singleMachine = true;
@@ -86,13 +86,13 @@ namespace PuppetMaster
 
         private void add_Message_Sub(string processnameS, string processnameP, string topicName, string eventNumber)
         {
-            MsgViewBox.Items.Add("SubEvent "+processnameS+" , "+ processnameP+" , "+topicName+" , "+eventNumber);
+            MsgViewBox.Items.Add("SubEvent " + processnameS + " , " + processnameP + " , " + topicName + " , " + eventNumber);
         }
 
         private void execute_Click(object sender, EventArgs e)
         {
             //string scriptPath = scriptbox.Text;
-            string scriptPath = "C:\\Users\\ist173830\\Source\\Repos\\DAD\\SESDAD\\script.txt";
+            string scriptPath = @"..\..\..\script.txt";
             StreamReader script = new StreamReader(scriptPath);
             String Line;
 
@@ -115,9 +115,9 @@ namespace PuppetMaster
             {
                 add_Message_List(commands);
             }
-            
+
             String[] command = commands.Split(new char[0], StringSplitOptions.RemoveEmptyEntries);
-            
+
             switch (command[0])
             {
 
@@ -129,8 +129,9 @@ namespace PuppetMaster
                     if (command[3].Equals("BROKER"))
                     {
                         add_Message_List("");
-                        if (sitesT[command[5]].Equals("none")) { 
-                         puppet.addBroker(command[1], command[5], command[7], "null");
+                        if (sitesT[command[5]].Equals("none"))
+                        {
+                            puppet.addBroker(command[1], command[5], command[7], "null");
                         }
                         else
                         {
@@ -177,6 +178,12 @@ namespace PuppetMaster
                 case "RoutingPolicy":
                     puppet.changePolicy(command[1]);
                     break;
+                case "Ordering":
+                    puppet.changeOrdering(command[1]);
+                    break;
+                case "LoggingLevel":
+                    puppet.changeLogLvl(command[1]);
+                    break;
             }
 
         }
@@ -189,6 +196,9 @@ namespace PuppetMaster
         private bool single;
         private String address;
         private int site;
+        private string policy;
+        private string order;
+        private string logLvl;
         private Dictionary<string, string> sites;
         private Dictionary<int, string> puppets;
         private Dictionary<string, string> brokers;
@@ -211,7 +221,11 @@ namespace PuppetMaster
             subsWithSite = new Dictionary<string, int>();
             puppets = new Dictionary<int, string>();
             sites = new Dictionary<string, string>();
+            policy = "flooding";
+            order = "FIFO";
+            logLvl = "light";
             init();
+
         }
 
         public void init()
@@ -272,7 +286,7 @@ namespace PuppetMaster
             if (this.single || this.site == siteB)
             {
 
-                String arguments = name + " " + site + " " + URL + " " + URLParent;
+                String arguments = name + " " + site + " " + URL + " " + URLParent + " " + policy + " " + order + " " + logLvl;
                 String filename = @"..\..\..\Broker\bin\Debug\Broker.exe";
                 Process.Start(filename, arguments);
             }
@@ -353,7 +367,8 @@ namespace PuppetMaster
 
                 subscriber.subEvent(topicName);
             }
-            else {
+            else
+            {
                 IPuppetMaster puppetM = (IPuppetMaster)Activator.GetObject(
                      typeof(IPuppetMaster),
                      puppets[this.subsWithSite[processName]]);
@@ -485,8 +500,8 @@ namespace PuppetMaster
         public void freeze(string processName)
         {
 
-           string url = "";
-           if (brokers.TryGetValue(processName, out url))
+            string url = "";
+            if (brokers.TryGetValue(processName, out url))
             {
                 formP.BeginInvoke(formP.myDelegate, brokers[processName]);
                 IBroker broker = (IBroker)Activator.GetObject(
@@ -502,14 +517,14 @@ namespace PuppetMaster
                              pubWithUrl[processName]);
                 publisher.freeze();
             }
-           else 
-           {
+            else
+            {
                 formP.BeginInvoke(formP.myDelegate, subsWithUrl[processName]);
                 ISubscriber subscriber = (ISubscriber)Activator.GetObject(
                                     typeof(ISubscriber),
                              subsWithUrl[processName]);
                 subscriber.freeze();
-           }
+            }
         }
 
         public void unfreeze(string processName)
@@ -554,7 +569,17 @@ namespace PuppetMaster
 
         public void changePolicy(string p)
         {
-            
+            policy = p;
+        }
+
+        internal void changeOrdering(string p)
+        {
+            order = p;
+        }
+
+        internal void changeLogLvl(string p)
+        {
+            logLvl = p;
         }
     }
 }

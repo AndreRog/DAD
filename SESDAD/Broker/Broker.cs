@@ -29,7 +29,7 @@ namespace Broker
             TcpChannel brokerChannel = new TcpChannel(Int32.Parse(arg[2]));
             ChannelServices.RegisterChannel(brokerChannel, false);
 
-            Broker broker = new Broker(args[0],args[3], args[2]);
+            Broker broker = new Broker(args[0], args[3], args[2], args[4], args[5], args[6]);
             RemotingServices.Marshal(broker, "broker", typeof(Broker));
             if (!args[3].Equals("null"))
             {
@@ -63,11 +63,11 @@ namespace Broker
         private List<FrozenEvent> frozenEvents;
         private string typeOrder;
         private string typeRouting;
-        private bool lightLog = true;
-        public string myUrl;
+        private bool lightLog;
+        private string myUrl;
         private bool isFrozen = false;
       
-        public Broker(string name, string parent,string myUrl) {
+        public Broker(string name, string parent,string myUrl,string policy, string order, string logLvl) {
             this.parentURL = parent;
             this.name = name;
             this.childs = new Dictionary<string, string>(2);
@@ -79,8 +79,12 @@ namespace Broker
             this.queueEvents = new List<Event>();
             this.frozenEvents = new List<FrozenEvent>();
             this.lastSeqNumber = new Dictionary<string, int>();
-            this.typeOrder = "NO";
-            this.typeRouting = "FILTERING";
+            this.typeOrder = order;
+            this.typeRouting = policy;
+            if (logLvl.Equals("light"))
+                lightLog = true;
+            else
+                lightLog = false;
             this.myUrl = myUrl;
         }
 
@@ -112,6 +116,7 @@ namespace Broker
                 return;
             }
             this.pubs.Add(name, URL);
+            this.lastSeqNumber.Add(name,0);
             Console.WriteLine("Pub Added:" + name);
         }
 
@@ -142,14 +147,113 @@ namespace Broker
                 sendToPM("PubEvent " + name + " , " + e.getSender() + " , " + e.getTopic() + " , " + e.getNumber());
             }
 
-            if (typeOrder.Equals("NO"))
-            {
-                events.Add(new KeyValuePair<string,Event>(name, e));
+
+               events.Add(new KeyValuePair<string,Event>(name, e));
                 propagate(e);
-                sendToSubscriber(e);
+                sentToSub(name, e);
+            return "ACK";
+        }
+
+        private void sentToSub(string name, Event e)
+        {
+            if(typeOrder.Equals("NO")) 
+            {
+                Thread thread = new Thread(() => this.sendToSubscriber(e));
+                thread.Start();
+            }
+            if(typeOrder.Equals("FIFO")) 
+            {
+                Thread thread = new Thread(() => this.sentToSubscriberFIFO(name,e));
+                thread.Start();
+            }
+        }
+
+        private void sentToSubscriberFIFO(string name, Event e)
+        {
+
+
+            //lock (this.lastSeqNumber)
+            //{
+  
+            //}
+            if (!(this.lastSeqNumber.ContainsKey(name)))
+            {
+
+                try
+                {
+                    lastSeqNumber.Add(name, 0);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex);
+                }
             }
 
-            return "ACK";
+            foreach (KeyValuePair<string, string> kvp in topicSubs)
+            {
+                if (itsForSend(kvp, e.getTopic()))
+                {
+                    if (lastSeqNumber[name] + 1 == e.getNumber())
+                    {
+                        Console.WriteLine("COME OUT COME OUT WHEREVER U ARE!");
+                        ISubscriber sub = (ISubscriber)Activator.GetObject(
+                        typeof(ISubscriber),
+                        kvp.Value);
+                        Console.WriteLine("Sending to : " + kvp.Value);
+                        sub.receiveEvent(e.getSender(), e);
+                        sendToPM("SubEvent " + sub.getName() + " , " + e.getSender() + " , " + e.getTopic() + " , " + e.getNumber());
+                        lastSeqNumber[name] += 1;
+                        getNextFIFOE(name, e);
+                        
+                        Monitor.Enter(queueEvents);
+                        try
+                        { 
+                            if (queueEvents.Contains(e))
+                              queueEvents.Remove(e);
+                        }
+                        finally
+                        {
+                            Monitor.Exit(queueEvents);
+                        }
+
+                    }
+                    else
+                    {
+                        Monitor.Enter(queueEvents);
+                        try{ 
+                            queueEvents.Add(e);
+                        }
+                        finally
+                        {
+                            Monitor.Exit(queueEvents);
+                        }
+                        
+                    }
+                    }
+                }
+
+            }
+        
+
+        private void getNextFIFOE(string name, Event e)
+        {
+            try
+            {
+                Monitor.Enter(queueEvents);
+                try { 
+                  foreach (Event queueE in queueEvents)
+                    {
+                        if (e.getTopic().Equals(queueE.getTopic()))
+                        {
+                         sentToSubscriberFIFO(queueE.getSender(), queueE);
+                        }
+                    }
+                } finally {
+                    Monitor.Exit(queueEvents);
+                }
+            }
+            catch (Exception ex) { Console.WriteLine(ex); }
+
         }
 
         public string subscribe(string topic, string URL)
@@ -163,7 +267,7 @@ namespace Broker
             Console.WriteLine("Received Subscribe");
             this.topicSubs.Add(new KeyValuePair<string,string>(topic, URL));
             
-            if (typeRouting.Equals("FILTERING"))
+            if (typeRouting.Equals("filtering"))
             {
                 Console.WriteLine("Mandei interesse");
                 tellBrokersInterest(this.myUrl,topic);
@@ -239,12 +343,12 @@ namespace Broker
 
         public void propagate(Event e)
         {
-            if (this.typeRouting.Equals("FLOODING"))
+            if (this.typeRouting.Equals("flooding"))
             {
                 Thread thread = new Thread(() => this.floodNoOrder(e));
                 thread.Start();
             }
-            if(this.typeRouting.Equals("FILTERING"))
+            if (this.typeRouting.Equals("filtering"))
             {
                 Thread thread = new Thread(() => this.floodFiltered(e));
                 thread.Start();
@@ -280,7 +384,7 @@ namespace Broker
                     typeof(IBroker),
                     this.parentURL);
 
-                    parent.receivePub(this.name, e);
+                    parent.receivePub(e.getSender(), e);
                     sendToPM("BroEvent " + name + " , " + e.getSender() + " , " + e.getTopic() + " , " + e.getNumber());
 
                 }
@@ -293,7 +397,7 @@ namespace Broker
                             typeof(IBroker),
                             childurl);
 
-                        child.receivePub(this.name, e);
+                        child.receivePub(e.getSender(), e);
                         sendToPM("BroEvent " + name + " , " + e.getSender() + " , " + e.getTopic() + " , " + e.getNumber());
                     }
                 }
@@ -307,7 +411,7 @@ namespace Broker
                             typeof(IBroker),
                             this.parentURL);
 
-                    parent.receivePub(this.name, e);
+                    parent.receivePub(e.getSender(), e);
                     sendToPM("BroEvent " + name + " , " + e.getSender() + " , " + e.getTopic() + " , " + e.getNumber());
                 }
                 if (!(childs.Count == 0))
@@ -320,7 +424,7 @@ namespace Broker
                                 typeof(IBroker),
                                childurl);
 
-                          child.receivePub(this.name, e);
+                          child.receivePub(e.getSender(), e);
                           sendToPM("BroEvent " + name + " , " + e.getSender() + " , " + e.getTopic() + " , " + e.getNumber());
                         }
                     }
