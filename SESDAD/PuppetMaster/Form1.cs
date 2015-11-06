@@ -174,6 +174,9 @@ namespace PuppetMaster
                 case "Wait":
                     puppet.sleep(command[1]);
                     break;
+                case "RoutingPolicy":
+                    puppet.changePolicy(command[1]);
+                    break;
             }
 
         }
@@ -547,6 +550,11 @@ namespace PuppetMaster
         public void toLog(string msg)
         {
             formP.BeginInvoke(formP.myDelegate, msg);
+        }
+
+        public void changePolicy(string p)
+        {
+            
         }
     }
 }
