@@ -148,9 +148,10 @@ namespace Broker
             }
 
 
-               events.Add(new KeyValuePair<string,Event>(name, e));
-                propagate(e);
-                sentToSub(name, e);
+
+               sentToSub(name, e);
+               propagate(e);
+
             return "ACK";
         }
 
@@ -158,119 +159,109 @@ namespace Broker
         {
             if(typeOrder.Equals("NO")) 
             {
+ 
+               // sendToSubscriber(e);
                 Thread thread = new Thread(() => this.sendToSubscriber(e));
                 thread.Start();
             }
             if(typeOrder.Equals("FIFO")) 
             {
+
                 Thread thread = new Thread(() => this.sentToSubscriberFIFO(name,e));
                 thread.Start();
             }
+            
         }
 
         private void sentToSubscriberFIFO(string name, Event e)
         {
 
-
-            //lock (this.lastSeqNumber)
-            //{
-  
-            //}
-            if (!(this.lastSeqNumber.ContainsKey(name)))
+            bool inside = false;
+            lock (this.queueEvents)
             {
 
-                try
+                //}
+                if (!(this.lastSeqNumber.ContainsKey(name)))
                 {
-                    lastSeqNumber.Add(name, 0);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex);
-                }
-            }
 
-            foreach (KeyValuePair<string, string> kvp in topicSubs)
-            {
-                if (itsForSend(kvp, e.getTopic()))
-                {
-                    Console.WriteLine("Event Seq:"+name+"->" + e.getNumber());
-                    if (lastSeqNumber[name] + 1 == e.getNumber())
+                    try
                     {
-                        Console.WriteLine("Initial Seq:" + lastSeqNumber[name]);
-                        ISubscriber sub = (ISubscriber)Activator.GetObject(
-                        typeof(ISubscriber),
-                        kvp.Value);
-                        Console.WriteLine("Sending to : " + kvp.Value);
-                        sub.receiveEvent(e.getSender(), e);
-                        sendToPM("SubEvent " + sub.getName() + " , " + e.getSender() + " , " + e.getTopic() + " , " + e.getNumber());
-                        lastSeqNumber[name] += 1;
-                        Console.WriteLine("End Seq!" + lastSeqNumber[name]);
-                        getNextFIFOE(name, e);
-                        lock (queueEvents) 
-                        {
-                            Console.WriteLine("COME ON IN");
-                            Monitor.Wait(queueEvents);
-                            try
-                            {
-                                Console.WriteLine("NEXT ONE");
-                             if (queueEvents.Contains(e))
-                               queueEvents.Remove(e);
-                         }
-                         finally
-                         {
-                             Console.WriteLine("FREE QUEUE");
-                             Monitor.Pulse(queueEvents);
-                         }
-                        }
-
+                        lastSeqNumber.Add(name, 0);
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        lock (queueEvents) {
-                            Monitor.Wait(queueEvents);
-                            try
-                            {
-                            Console.WriteLine("Go to Priority");
-                            queueEvents.Add(e);
-                        }
-                        finally
-                        {
-                            Monitor.Pulse(queueEvents);
-                        }
-                        }
+                        Console.WriteLine(ex);
+                    }
+                }
+
+                foreach (KeyValuePair<string, string> kvp in topicSubs)
+                {
+
+                    if (itsForSend(kvp, e.getTopic()))
+                    {
+                        Console.WriteLine("Found a Subscriber:" + kvp.Value);
                         
-                    }
+                        if (lastSeqNumber[name] + 1 == e.getNumber())
+                        {
+
+                            ISubscriber sub = (ISubscriber)Activator.GetObject(
+                            typeof(ISubscriber),
+                            kvp.Value);
+                            Console.WriteLine("Sending to : " + kvp.Value + "EVENT :" + e.getNumber() + "FROM:" + name);
+                            sub.receiveEvent(e.getSender(), e);
+                            events.Add(new KeyValuePair<string, Event>(name, e));
+                            sendToPM("SubEvent " + sub.getName() + " , " + e.getSender() + " , " + e.getTopic() + " , " + e.getNumber());
+                            inside = true;
+                            Console.WriteLine("End Seq!" + lastSeqNumber[name]);
+
+
+                           //     Console.WriteLine("COME ON IN");
+                           if (queueEvents.Contains(e))
+                                 queueEvents.Remove(e);
+                           getNextFIFOE(name, e);
+                           
+                        }
+                        else
+                        {
+
+
+                                   Console.WriteLine("Go to Priority");
+                                    queueEvents.Add(e);
+                                 //   getNextFIFOE(name, e);
+
+                        }
                     }
                 }
-            Console.WriteLine("LEFT BOY");
-
+                if(inside)
+                    lastSeqNumber[name] += 1;
+                Console.WriteLine("LEFT BOY");
+            }
             }
         
 
         private void getNextFIFOE(string name, Event e)
         {
+
+
             try
             {
-                lock (queueEvents) { 
-                //Monitor.Wait(queueEvents);
-                //try {
-                    Console.WriteLine("NEXT ONE");
-                  foreach (Event queueE in queueEvents)
+                  foreach (Event queueE in this.queueEvents)
                     {
                         if (e.getTopic().Equals(queueE.getTopic()))
                         {
-                         sentToSubscriberFIFO(queueE.getSender(), queueE);
+                            Console.WriteLine("FOUND ONE TOPIC");
+                          //sentToSubscriberFIFO(queueE.getSender(), queueE);
+                            Thread thread = new Thread(() => this.sentToSubscriberFIFO(queueE.getSender(), queueE));
+                            thread.Start();
+                            break;
                         }
                     }
-                //} finally {
-                //    Monitor.Pulse(queueEvents);
-                //}
-                  Console.WriteLine("BAZATING");
-                }
+                 // Console.WriteLine("BAZATING");
+                
             }
             catch (Exception ex) { Console.WriteLine(ex); }
-
-        }
+            }
+        
 
         public string subscribe(string topic, string URL)
         {
@@ -495,6 +486,7 @@ namespace Broker
         {
             foreach (KeyValuePair<string,string> kvp in topicSubs)
             {
+                Console.WriteLine("Event iD ->" + e.getNumber());
                 if (itsForSend(kvp , e.getTopic()))
                 {
 
@@ -510,6 +502,7 @@ namespace Broker
 
         private bool itsForSend(KeyValuePair<string, string> kvp, string topic)
         {
+
             string PathSub = kvp.Key;
             string url = kvp.Value;
             string pathEvento = topic;
@@ -525,20 +518,34 @@ namespace Broker
             string[] path = pathEvento.Split(delimiter);
 
             int niveis = pathSub.Count();
-            int i = 1;
+            int i = 0;
             bool isForSent = false;
 
-            while (niveis >= i)
+
+
+            while (i <= niveis -1 )
 	        {
+
                if (pathSub[i].Equals(path[i]))
                 {
                     i++;
                 }
-               if (pathSub[i].Equals(asterisco))
-                {
-                    isForSent = true;
-                    break;
-                }         
+               else {
+                   if (!(pathSub[i].Equals(path[i])))
+                   {
+                       if ((i == niveis - 1) && path[i].Equals(asterisco))
+                       {
+
+                           isForSent = true;
+                           break;
+                       }
+                       else
+                       {
+                           isForSent = false;
+                           break;
+                       }
+                   }
+               }
 	        }
             return isForSent;
         }

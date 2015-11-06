@@ -30,7 +30,7 @@ namespace Publisher
                     args[3]);
 
             Publisher publisher = new Publisher(args[0],args[2], args[3], broker);
-            RemotingServices.Marshal(publisher, "publisher", typeof(Publisher));
+            RemotingServices.Marshal(publisher, "pub", typeof(Publisher));
 
 
 

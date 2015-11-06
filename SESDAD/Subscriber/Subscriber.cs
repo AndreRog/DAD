@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Runtime.Remoting;
 using System.Runtime.Remoting.Channels;
 using System.Runtime.Remoting.Channels.Tcp;
+using System.Diagnostics;
 
 namespace Subscriber
 {
@@ -29,7 +30,7 @@ namespace Subscriber
                     args[3]);
 
             Subscriber subscriber = new Subscriber(args[0],args[2], args[3],broker);
-            RemotingServices.Marshal(subscriber, "subscriber", typeof(Subscriber));
+            RemotingServices.Marshal(subscriber, "sub", typeof(Subscriber));
 
 
      
@@ -130,7 +131,7 @@ namespace Subscriber
 
         public void crash()
         {
-            Environment.Exit(-1);
+            Process.GetCurrentProcess().Kill();
         }
 
         public void status()
