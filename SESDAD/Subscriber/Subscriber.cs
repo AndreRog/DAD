@@ -154,10 +154,8 @@ namespace Subscriber
 
         public void unfreeze()
         {
-            Console.WriteLine("entrei");
             isFrozen = false;
             checkFrozenEvents();
-            Console.WriteLine("sai");
         }
 
         public void checkFrozenEvents()

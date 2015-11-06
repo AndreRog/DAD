@@ -98,23 +98,18 @@ namespace Publisher
 
                 if (isFrozen)
                 {
-                    FrozenEvent fe = new FrozenEvent(numberEvents, topic, interval);
+                    FrozenEvent fe = new FrozenEvent("EVENT", e);
                     frozenEvents.Add(fe);
+                    Thread.Sleep(sleep);
                 }
-
-                try
+                else
                 {
-                    // Vê a excepção que dá quando corres pela segunda vez
+
                     this.broker.receivePub(this.name, e);
                     events.Add(new KeyValuePair<string, Event>(name, e));
                     Console.WriteLine("Creating Event : " + topic);
-                    
+                    Thread.Sleep(sleep);
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine("Exception message : " + ex.ToString());
-                }
-                Thread.Sleep(sleep);
             }
         
         }
@@ -154,7 +149,7 @@ namespace Publisher
         {
             foreach (FrozenEvent fe in frozenEvents)
             {
-                this.pubEvent(fe.getEventType(), fe.getName(), fe.getURL());                  
+                this.broker.receivePub(this.name,fe.getEvent());                  
             }
             frozenEvents = new List<FrozenEvent>();
         }
