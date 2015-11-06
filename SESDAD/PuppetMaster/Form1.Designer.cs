@@ -40,7 +40,7 @@
             this.Type = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
-            this.Site = new System.Windows.Forms.Label();
+            this.label6 = new System.Windows.Forms.Label();
             this.siteBox = new System.Windows.Forms.TextBox();
             this.addSlave = new System.Windows.Forms.Button();
             this.SlaveURL = new System.Windows.Forms.TextBox();
@@ -149,7 +149,7 @@
             // 
             // groupBox1
             // 
-            this.groupBox1.Controls.Add(this.Site);
+            this.groupBox1.Controls.Add(this.label6);
             this.groupBox1.Controls.Add(this.siteBox);
             this.groupBox1.Controls.Add(this.addSlave);
             this.groupBox1.Controls.Add(this.SlaveURL);
@@ -166,14 +166,14 @@
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "PuppetMaster";
             // 
-            // Site
+            // label6
             // 
-            this.Site.AutoSize = true;
-            this.Site.Location = new System.Drawing.Point(219, 25);
-            this.Site.Name = "Site";
-            this.Site.Size = new System.Drawing.Size(25, 13);
-            this.Site.TabIndex = 16;
-            this.Site.Text = "Site";
+            this.label6.AutoSize = true;
+            this.label6.Location = new System.Drawing.Point(219, 25);
+            this.label6.Name = "label6";
+            this.label6.Size = new System.Drawing.Size(25, 13);
+            this.label6.TabIndex = 16;
+            this.label6.Text = "Site";
             // 
             // siteBox
             // 
@@ -275,7 +275,7 @@
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.Button addSlave;
         private System.Windows.Forms.TextBox siteBox;
-        private System.Windows.Forms.Label Site;
+        private System.Windows.Forms.Label label6;
     }
 }
 

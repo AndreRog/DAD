@@ -22,6 +22,7 @@ namespace PuppetMaster
     {
         private PuppetMaster puppet;
         public delegate void UpdateListMessage(string msg);
+        public Dictionary<string, string> sitesT;
         public UpdateListMessage myDelegate;
         public bool singleMachine;
         public bool master;
@@ -31,7 +32,7 @@ namespace PuppetMaster
             InitializeComponent();
             singleMachine = false;
             myDelegate = new UpdateListMessage(add_Message_List);
-
+            sitesT = new Dictionary<string, string>();
             
             if (args.Equals("-singleMachine"))
             {
@@ -120,11 +121,21 @@ namespace PuppetMaster
             switch (command[0])
             {
 
-
+                case "Site":
+                    sitesT.Add(command[1], command[3]);
+                    puppet.addSite(command[1], command[3]);
+                    break;
                 case "Process":
                     if (command[3].Equals("BROKER"))
                     {
-                        puppet.addBroker(command[1], command[5], command[7], command[8]);
+                        add_Message_List("");
+                        if (sitesT[command[5]].Equals("none")) { 
+                         puppet.addBroker(command[1], command[5], command[7], "null");
+                        }
+                        else
+                        {
+                            puppet.addBroker(command[1], command[5], command[7], puppet.getParent(sitesT[command[5]]));
+                        }
                     }
                     else if (command[3].Equals("SUBSCRIBER"))
                     {
@@ -175,8 +186,10 @@ namespace PuppetMaster
         private bool single;
         private String address;
         private int site;
+        private Dictionary<string, string> sites;
         private Dictionary<int, string> puppets;
         private Dictionary<string, string> brokers;
+        private Dictionary<int, string> brokersSite;
         private Dictionary<string, string> pubWithUrl;
         private Dictionary<string, int> pubWithSite;
         private Dictionary<string, string> subsWithUrl;
@@ -188,11 +201,13 @@ namespace PuppetMaster
             this.site = iD;
             this.single = single;
             brokers = new Dictionary<string, string>();
+            brokersSite = new Dictionary<int, string>();
             pubWithUrl = new Dictionary<string, string>();
             pubWithSite = new Dictionary<string, int>();
             subsWithUrl = new Dictionary<string, string>();
             subsWithSite = new Dictionary<string, int>();
             puppets = new Dictionary<int, string>();
+            sites = new Dictionary<string, string>();
             init();
         }
 
@@ -243,6 +258,11 @@ namespace PuppetMaster
             return i;
         }
 
+        public void addSite(string site, string parent)
+        {
+            sites.Add(site, parent);
+        }
+
         public void addBroker(string name, string site, string URL, string URLParent)
         {
             int siteB = convertStoI(site);
@@ -262,6 +282,13 @@ namespace PuppetMaster
                 puppetM.addBroker(name, site, URL, URLParent);
             }
             this.brokers.Add(name, URL);
+            this.brokersSite.Add(siteB, URL);
+        }
+
+        public string getParent(string siteO)
+        {
+            int i = convertStoI(siteO);
+            return this.brokersSite[i];
         }
 
         public void addSubscriber(string name, string site, string url, string urlbroker)
@@ -343,6 +370,13 @@ namespace PuppetMaster
 
                 subscriber.UnsubEvent(topicName);
             }
+            else
+            {
+                IPuppetMaster puppetM = (IPuppetMaster)Activator.GetObject(
+                     typeof(IPuppetMaster),
+                     puppets[this.subsWithSite[processName]]);
+                puppetM.unsubscribe(processName, topicName);
+            }
         }
 
         public void publish(string processName, string numberEvents, string topicName, string interval)
@@ -415,7 +449,7 @@ namespace PuppetMaster
 
         public void status()
         {
-            Console.WriteLine("Making Status");
+
             foreach (string s in brokers.Values)
             {
                 Console.WriteLine("Broker : " + s);
@@ -447,7 +481,7 @@ namespace PuppetMaster
 
         public void freeze(string processName)
         {
-           Console.WriteLine("Freezing " + processName);
+
            string url = "";
            if (brokers.TryGetValue(processName, out url))
             {
@@ -477,8 +511,6 @@ namespace PuppetMaster
 
         public void unfreeze(string processName)
         {
-            Console.WriteLine("Unfreezing " + processName);
-            Console.WriteLine("Freezing " + processName);
             string url = "";
             if (brokers.TryGetValue(processName, out url))
             {
@@ -502,9 +534,7 @@ namespace PuppetMaster
                 ISubscriber subscriber = (ISubscriber)Activator.GetObject(
                                     typeof(ISubscriber),
                              subsWithUrl[processName]);
-                Console.WriteLine("entrei");
                 subscriber.freeze();
-                Console.WriteLine("sai");
             }
         }
 

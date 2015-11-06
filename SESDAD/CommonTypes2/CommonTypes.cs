@@ -54,6 +54,7 @@ namespace CommonTypes
         void toLog(string msg);
         void subscribe(string processName, string topicName);
         void publish(string processName, string numberEvents, string topicName, string interval);
+        void unsubscribe(string processName, string topicName);
     }
 
     [Serializable]
