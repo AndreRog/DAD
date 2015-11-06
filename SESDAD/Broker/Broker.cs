@@ -57,10 +57,12 @@ namespace Broker
         private Dictionary<string,string> childs;
         private Dictionary<string, string> pubs;
         private Dictionary<string, string> subs;
-        private Dictionary<string, string> topicSubs;
+        private List<KeyValuePair<string,string>> topicSubs;
+        private List<KeyValuePair<string, string>> filteringInterest;
         private Dictionary<string, int> lastSeqNumber;
         private List<FrozenEvent> frozenEvents;
-        private string typeFlood;
+        private string typeOrder;
+        private string typeRouting;
         private bool lightLog = true;
         private string myUrl;
         private bool isFrozen = false;
@@ -69,14 +71,16 @@ namespace Broker
             this.parentURL = parent;
             this.name = name;
             this.childs = new Dictionary<string, string>(2);
+            this.filteringInterest = new List<KeyValuePair<string, string>>();
             this.pubs = new Dictionary<string, string>();
             this.subs = new Dictionary<string, string>();
-            this.topicSubs = new Dictionary<string, string>();
+            this.topicSubs = new List<KeyValuePair<string, string>>();
             this.events = new List<KeyValuePair<string, Event>>();
             this.queueEvents = new List<Event>();
             this.frozenEvents = new List<FrozenEvent>();
             this.lastSeqNumber = new Dictionary<string, int>();
-            this.typeFlood = "NO";
+            this.typeOrder = "NO";
+            this.typeRouting = "FILTERING";
             this.myUrl = myUrl;
         }
 
@@ -138,7 +142,7 @@ namespace Broker
                 sendToPM("PubEvent " + name + " , " + e.getSender() + " , " + e.getTopic() + " , " + e.getNumber());
             }
 
-            if (typeFlood.Equals("NO") || typeFlood.Equals("FIFO"))
+            if (typeOrder.Equals("NO"))
             {
                 events.Add(new KeyValuePair<string,Event>(name, e));
                 propagate(e);
@@ -157,7 +161,11 @@ namespace Broker
                 return "ACK";
             }
             Console.WriteLine("Received Subscribe");
-            this.topicSubs.Add(topic, URL);
+            this.topicSubs.Add(new KeyValuePair<string,string>(topic, URL));
+            if (typeOrder.Equals("FILTERING"))
+            {
+                tellBrokersInterest(topic);
+            }
             return "ACK";
         }
 
@@ -171,10 +179,13 @@ namespace Broker
             }
             // pode eliminar o errado caso existam 2 ocorrencias , FIX ME
             Console.WriteLine("Received Unsubscribe");
-            if (this.topicSubs[topic].Equals(URL))
-            {
-                this.topicSubs.Remove(topic);
-            }
+            foreach(KeyValuePair<string,string>  kvp in topicSubs)
+	        {
+		            if(kvp.Key.Equals(topic) && kvp.Value.Equals(URL)){
+                        topicSubs.Remove(kvp);
+                        break;
+                    }
+	        }
             return "ACK";
         }
 
@@ -226,10 +237,30 @@ namespace Broker
 
         public void propagate(Event e)
         {
-            if (this.typeFlood.Equals("NO") || this.typeFlood.Equals("FIFO"))
+            if (this.typeRouting.Equals("FLOODING"))
             {
                 Thread thread = new Thread(() => this.floodNoOrder(e));
                 thread.Start();
+            }
+            if(this.typeRouting.Equals("FILTERING"))
+            {
+                Thread thread = new Thread(() => this.floodFiltered(e));
+                thread.Start();
+            }
+        }
+
+        public void floodFiltered(Event e)
+        {
+            Console.WriteLine("Filtering started");
+            foreach (KeyValuePair<string,string> kvp in filteringInterest)
+            {
+                if(kvp.Value.Equals(e.getTopic()))
+                {
+                   IBroker broker = (IBroker)Activator.GetObject(
+                   typeof(IBroker),
+                   kvp.Key);
+                   broker.receivePub(e.getSender(),e);
+                }
             }
         }
 
@@ -240,8 +271,6 @@ namespace Broker
             e.setLastHop(this.myUrl);
             if (lastHop.Equals("null"))
             {
-                
-
                 if (! (parentURL.Equals("null")))
                 {
 
@@ -294,6 +323,45 @@ namespace Broker
                         }
                     }
                 }
+            }
+        }
+
+        private void tellBrokersInterest(string topic)
+        {
+            //Isto nao esta a mandar a mais do que pai e filhos, tenho/temos que ver isso.
+
+            if (!(parentURL.Equals("null")))
+            {
+                IBroker parent = (IBroker)Activator.GetObject(
+                typeof(IBroker),
+                this.parentURL);
+
+                parent.receiveInterest(this.name,topic);
+                sendToPM("BroEvent " + this.name + " , Giving Interest in "+topic);
+
+            }
+            if (!(childs.Count == 0))
+            {
+
+                foreach (string childurl in childs.Values)
+                {
+                    IBroker child = (IBroker)Activator.GetObject(
+                        typeof(IBroker),
+                        childurl);
+
+                    child.receiveInterest(this.name, topic);
+                    sendToPM("BroEvent " + this.name + " , Giving Interest in " + topic);
+                }
+            }
+        }
+
+        public void receiveInterest(string name, string topic)
+        {
+            KeyValuePair<string,string> kvp;
+            kvp = new KeyValuePair<string,string>(name,topic);
+            if(!filteringInterest.Contains(kvp))
+            {
+                filteringInterest.Add(kvp);
             }
         }
 

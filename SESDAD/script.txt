@@ -1,12 +1,13 @@
 Site site0 Parent none
 Site site1 Parent site0
-Process broker0 Is BROKER On site0 URL tcp://localhost:3333/broker null null null
-Process broker1 Is BROKER On site1 URL tcp://localhost:3334/broker tcp://localhost:3333/broker null null
+Process broker0 Is BROKER On site0 URL tcp://localhost:3333/broker
+Process broker1 Is BROKER On site1 URL tcp://localhost:3334/broker
 Process subscriber0 Is SUBSCRIBER On site0 URL tcp://localhost:3335/subscriber tcp://localhost:3333/broker
+Process subscriber2 Is SUBSCRIBER On site0 URL tcp://localhost:3339/subscriber tcp://localhost:3333/broker
 Process publisher0 Is PUBLISHER On site0 URL tcp://localhost:3336/publisher tcp://localhost:3333/broker
 Process publisher1 Is PUBLISHER On site0 URL tcp://localhost:3338/publisher tcp://localhost:3333/broker
 Process subscriber1 Is SUBSCRIBER On site1 URL tcp://localhost:3337/subscriber tcp://localhost:3334/broker
 Subscriber subscriber0 Subscribe /ist/utl/pt
 Subscriber subscriber1 Subscribe /ist/utl/pt
+Subscriber subscriber2 Subscribe /ist/utl/pt
 Publisher publisher0 Publish 10 Ontopic /ist/utl/pt Interval 1000
-Freeze publisher0
