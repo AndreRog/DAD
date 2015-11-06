@@ -148,6 +148,12 @@ namespace Broker
                 propagate(e);
                 sendToSubscriber(e);
             }
+            else if (typeRouting.Equals("FILTERED"))
+            {
+                events.Add(new KeyValuePair<string, Event>(name, e));
+                propagate(e);
+                sendToSubscriber(e);
+            }
 
             return "ACK";
         }
@@ -162,8 +168,9 @@ namespace Broker
             }
             Console.WriteLine("Received Subscribe");
             this.topicSubs.Add(new KeyValuePair<string,string>(topic, URL));
-            if (typeOrder.Equals("FILTERING"))
+            if (typeRouting.Equals("FILTERING"))
             {
+                Console.WriteLine("Mandei interesse");
                 tellBrokersInterest(topic);
             }
             return "ACK";
@@ -330,19 +337,8 @@ namespace Broker
         {
             //Isto nao esta a mandar a mais do que pai e filhos, tenho/temos que ver isso.
 
-            if (!(parentURL.Equals("null")))
-            {
-                IBroker parent = (IBroker)Activator.GetObject(
-                typeof(IBroker),
-                this.parentURL);
-
-                parent.receiveInterest(this.name,topic);
-                sendToPM("BroEvent " + this.name + " , Giving Interest in "+topic);
-
-            }
             if (!(childs.Count == 0))
             {
-
                 foreach (string childurl in childs.Values)
                 {
                     IBroker child = (IBroker)Activator.GetObject(
