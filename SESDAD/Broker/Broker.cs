@@ -64,7 +64,7 @@ namespace Broker
         private string typeOrder;
         private string typeRouting;
         private bool lightLog = true;
-        private string myUrl;
+        public string myUrl;
         private bool isFrozen = false;
       
         public Broker(string name, string parent,string myUrl) {
@@ -148,12 +148,6 @@ namespace Broker
                 propagate(e);
                 sendToSubscriber(e);
             }
-            else if (typeRouting.Equals("FILTERED"))
-            {
-                events.Add(new KeyValuePair<string, Event>(name, e));
-                propagate(e);
-                sendToSubscriber(e);
-            }
 
             return "ACK";
         }
@@ -168,10 +162,11 @@ namespace Broker
             }
             Console.WriteLine("Received Subscribe");
             this.topicSubs.Add(new KeyValuePair<string,string>(topic, URL));
+            
             if (typeRouting.Equals("FILTERING"))
             {
                 Console.WriteLine("Mandei interesse");
-                tellBrokersInterest(topic);
+                tellBrokersInterest(this.myUrl,topic);
             }
             return "ACK";
         }
@@ -261,12 +256,12 @@ namespace Broker
             Console.WriteLine("Filtering started");
             foreach (KeyValuePair<string,string> kvp in filteringInterest)
             {
-                if(kvp.Value.Equals(e.getTopic()))
+                if(kvp.Key.Equals(e.getTopic()))
                 {
                    IBroker broker = (IBroker)Activator.GetObject(
                    typeof(IBroker),
-                   kvp.Key);
-                   broker.receivePub(e.getSender(),e);
+                   kvp.Value);
+                   broker.sendToSubscriber(e);
                 }
             }
         }
@@ -333,31 +328,46 @@ namespace Broker
             }
         }
 
-        private void tellBrokersInterest(string topic)
+        private void tellBrokersInterest(string fromURL,string topic)
         {
-            //Isto nao esta a mandar a mais do que pai e filhos, tenho/temos que ver isso.
+            if (!(parentURL.Equals("null")))
+            {
+                if (!parentURL.Equals(fromURL))
+                {
+                    IBroker parent = (IBroker)Activator.GetObject(
+                    typeof(IBroker),
+                    this.parentURL);
 
+                    parent.receiveInterest(topic, myUrl);
+                    sendToPM("BroEvent " + this.name + " , Giving Interest in " + topic);
+                }
+
+            }
             if (!(childs.Count == 0))
             {
                 foreach (string childurl in childs.Values)
                 {
-                    IBroker child = (IBroker)Activator.GetObject(
-                        typeof(IBroker),
-                        childurl);
+                    if (!childurl.Equals(fromURL))
+                    {
+                        IBroker child = (IBroker)Activator.GetObject(
+                            typeof(IBroker),
+                            childurl);
 
-                    child.receiveInterest(this.name, topic);
-                    sendToPM("BroEvent " + this.name + " , Giving Interest in " + topic);
+                        child.receiveInterest(topic, myUrl);
+                        sendToPM("BroEvent " + this.name + " , Giving Interest in " + topic);
+                    }
                 }
             }
         }
 
-        public void receiveInterest(string name, string topic)
+        public void receiveInterest(string topic, string name)
         {
             KeyValuePair<string,string> kvp;
-            kvp = new KeyValuePair<string,string>(name,topic);
+            kvp = new KeyValuePair<string,string>(topic, name);
             if(!filteringInterest.Contains(kvp))
             {
                 filteringInterest.Add(kvp);
+                Console.WriteLine("Adicionei interesse");
             }
         }
 

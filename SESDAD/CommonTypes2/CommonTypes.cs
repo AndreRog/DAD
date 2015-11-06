@@ -21,7 +21,8 @@ namespace CommonTypes
         void status();
         void unfreeze();
         void freeze();
-        void receiveInterest(string name, string topic);
+        void receiveInterest(string topic, string name);
+        void sendToSubscriber(Event e);
     }
 
     public interface ISubscriber
