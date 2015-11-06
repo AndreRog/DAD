@@ -50,7 +50,10 @@ namespace CommonTypes
     {
         void addBroker(string name, string site, string url, string urlbroker);
         void addSubscriber(string name, string site, string url, string urlbroker);
+        void addPublisher(string name, string site, string url, string urlbroker);
         void toLog(string msg);
+        void subscribe(string processName, string topicName);
+        void publish(string processName, string numberEvents, string topicName, string interval);
     }
 
     [Serializable]

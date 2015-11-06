@@ -91,7 +91,7 @@ namespace PuppetMaster
         private void execute_Click(object sender, EventArgs e)
         {
             //string scriptPath = scriptbox.Text;
-            string scriptPath = "C:\\Users\\ist173830\\Source\\Repos\\DAD\\SESDAD\\script.txt";
+            string scriptPath = "C:\\Users\\ist173895\\Source\\Repos\\DAD\\SESDAD\\script.txt";
             StreamReader script = new StreamReader(scriptPath);
             String Line;
 
@@ -299,7 +299,11 @@ namespace PuppetMaster
             }
             else
             {
-                //Remote Puppet Code need to try it yet.
+                //Remote Puppet Code.
+                IPuppetMaster puppetM = (IPuppetMaster)Activator.GetObject(
+                    typeof(IPuppetMaster),
+                    puppets[siteB]);
+                puppetM.addPublisher(name, site, url, urlbroker);
             }
             this.pubWithUrl.Add(name, url);
             this.pubWithSite.Add(name, siteB);
@@ -308,9 +312,6 @@ namespace PuppetMaster
 
         public void subscribe(string processName, string topicName)
         {
-
-            //string siteP = this.subsWithSite[processName];
-
 
             if (this.single || this.site == this.subsWithSite[processName])
             {
@@ -321,6 +322,12 @@ namespace PuppetMaster
                              this.subsWithUrl[processName]);
 
                 subscriber.subEvent(topicName);
+            }
+            else {
+                IPuppetMaster puppetM = (IPuppetMaster)Activator.GetObject(
+                     typeof(IPuppetMaster),
+                     puppets[this.subsWithSite[processName]]);
+                puppetM.subscribe(processName, topicName);
             }
         }
 
@@ -356,6 +363,10 @@ namespace PuppetMaster
             else
             {
                 //IPuppetMaster puppetM = PuppetMaster
+                IPuppetMaster puppetM = (IPuppetMaster)Activator.GetObject(
+                     typeof(IPuppetMaster),
+                     puppets[this.pubWithSite[processName]]);
+                puppetM.publish(processName, numberEvents, topicName, interval);
 
             }
 
