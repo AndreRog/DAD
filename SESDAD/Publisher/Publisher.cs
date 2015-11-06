@@ -52,7 +52,7 @@ namespace Publisher
 
         private List<KeyValuePair<string, Event>> events;
 
-        private static int seqNumber = 1;
+        private static int seqNumber = 0;
 
         private bool isFrozen = false;
 

@@ -7,7 +7,9 @@ Process publisher0 Is PUBLISHER On site0 URL tcp://localhost:3336/publisher tcp:
 Process publisher1 Is PUBLISHER On site0 URL tcp://localhost:3338/publisher tcp://localhost:3333/broker
 Process subscriber1 Is SUBSCRIBER On site1 URL tcp://localhost:3337/subscriber tcp://localhost:3334/broker
 Subscriber subscriber0 Subscribe /ist/utl/pt
-Subscriber subscriber1 Subscribe /ist/*
+Subscriber subscriber1 Subscribe /ist/utl/pt
+Freeze subscriber0
 Publisher publisher0 Publish 10 Ontopic /ist/utl/pt Interval 1000
 Publisher publisher1 Publish 10 Ontopic /ist/utl/pt Interval 1000
-Publisher publisher0 Publish 10 Ontopic /ist/utl/pt Interval 1000
+Wait 11000
+Unfreeze subscriber0

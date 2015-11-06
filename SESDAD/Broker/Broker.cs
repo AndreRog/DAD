@@ -76,7 +76,7 @@ namespace Broker
             this.queueEvents = new List<Event>();
             this.frozenEvents = new List<FrozenEvent>();
             this.lastSeqNumber = new Dictionary<string, int>();
-            this.typeFlood = "FIFO";
+            this.typeFlood = "NO";
             this.myUrl = myUrl;
         }
 
@@ -108,7 +108,6 @@ namespace Broker
                 return;
             }
             this.pubs.Add(name, URL);
-            this.lastSeqNumber.Add(name, 0);
             Console.WriteLine("Pub Added:" + name);
         }
 
@@ -139,43 +138,14 @@ namespace Broker
                 sendToPM("PubEvent " + name + " , " + e.getSender() + " , " + e.getTopic() + " , " + e.getNumber());
             }
 
-            if (typeFlood.Equals("FIFO"))
-            {
-                if(!lastSeqNumber.Contains(e.getSender())){
-                    lastSeqNumber.Add(e.getSender(),e.getNumber()-1);
-                }
-                }
-                if (lastSeqNumber[e.getSender()].Equals(e.getNumber() + 1))
-                {
-                    propagate(e);
-                    sendToSubscriber(e);
-                    lastSeqNumber
-                    checkFollowInQueue(e);
-                }
-                else{
-                    queueEvents.Add(e);
-                }
-            }
-
-            if (typeFlood.Equals("NO"))
+            if (typeFlood.Equals("NO") || typeFlood.Equals("FIFO"))
             {
                 events.Add(new KeyValuePair<string,Event>(name, e));
                 propagate(e);
                 sendToSubscriber(e);
             }
-            return "ACK";
-        }
 
-        public void checkFollowInQueue(Event e)
-        {
-            foreach (Event eve in queueEvents)
-            {
-                if (e.getNumber().Equals(eve.getNumber() - 1) && eve.getSender().Equals(e.getSender()))
-                {
-                    this.receivePub(eve.getSender(), e);
-                    queueEvents.Remove(eve);
-                }
-            }
+            return "ACK";
         }
 
         public string subscribe(string topic, string URL)

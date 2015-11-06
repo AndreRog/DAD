@@ -405,7 +405,6 @@ namespace PuppetMaster
         public void status()
         {
             Console.WriteLine("Making Status");
-            // int i;
             foreach (string s in brokers.Values)
             {
                 Console.WriteLine("Broker : " + s);
@@ -437,77 +436,64 @@ namespace PuppetMaster
 
         public void freeze(string processName)
         {
-            Console.WriteLine("Freezing " + processName);
-            if (this.site.Equals(this.pubWithSite[processName]))
+           Console.WriteLine("Freezing " + processName);
+           string url = "";
+           if (brokers.TryGetValue(processName, out url))
             {
-                Console.WriteLine(pubWithUrl[processName]);
-
-                formP.BeginInvoke(formP.myDelegate, pubWithUrl[processName]);
-                IPublisher publisher = (IPublisher)Activator.GetObject(
-                      typeof(IPublisher),
-                             this.pubWithUrl[processName]);
-
-                publisher.freeze();
-
-            }else if (this.site.Equals(this.subsWithSite[processName]))
-            {
-                Console.WriteLine(subsWithUrl[processName]);
-
-                formP.BeginInvoke(formP.myDelegate, subsWithUrl[processName]);
-                ISubscriber subscriber = (ISubscriber)Activator.GetObject(
-                      typeof(ISubscriber),
-                             this.subsWithUrl[processName]);
-
-                subscriber.freeze();
-
-            }else if (this.brokers.Equals(this.brokers[processName]))
-            {
-                Console.WriteLine(brokers[processName]);
-
                 formP.BeginInvoke(formP.myDelegate, brokers[processName]);
                 IBroker broker = (IBroker)Activator.GetObject(
-                      typeof(IBroker),
-                             this.brokers[processName]);
-
+                                    typeof(IBroker),
+                             brokers[processName]);
                 broker.freeze();
             }
+            else if (pubWithUrl.TryGetValue(processName, out url))
+            {
+                formP.BeginInvoke(formP.myDelegate, pubWithUrl[processName]);
+                IPublisher publisher = (IPublisher)Activator.GetObject(
+                                    typeof(IPublisher),
+                             pubWithUrl[processName]);
+                publisher.freeze();
+            }
+           else 
+           {
+                formP.BeginInvoke(formP.myDelegate, subsWithUrl[processName]);
+                ISubscriber subscriber = (ISubscriber)Activator.GetObject(
+                                    typeof(ISubscriber),
+                             subsWithUrl[processName]);
+                subscriber.freeze();
+           }
         }
 
         public void unfreeze(string processName)
         {
             Console.WriteLine("Unfreezing " + processName);
-            if (this.site.Equals(this.pubWithSite[processName]))
+            Console.WriteLine("Freezing " + processName);
+            string url = "";
+            if (brokers.TryGetValue(processName, out url))
             {
-                Console.WriteLine(pubWithUrl[processName]);
-
-                formP.BeginInvoke(formP.myDelegate, pubWithUrl[processName]);
-                IPublisher publisher = (IPublisher)Activator.GetObject(
-                      typeof(IPublisher),
-                             this.pubWithUrl[processName]);
-
-                publisher.unfreeze();
-
-            }else if (this.site.Equals(this.subsWithSite[processName]))
-            {
-                Console.WriteLine(subsWithUrl[processName]);
-
-                formP.BeginInvoke(formP.myDelegate, subsWithUrl[processName]);
-                ISubscriber subscriber = (ISubscriber)Activator.GetObject(
-                      typeof(ISubscriber),
-                             this.subsWithUrl[processName]);
-
-                subscriber.unfreeze();
-
-            }else if (this.brokers.Equals(this.brokers[processName]))
-            {
-                Console.WriteLine(brokers[processName]);
-
                 formP.BeginInvoke(formP.myDelegate, brokers[processName]);
                 IBroker broker = (IBroker)Activator.GetObject(
-                      typeof(IBroker),
-                             this.brokers[processName]);
-
-                broker.unfreeze();
+                                    typeof(IBroker),
+                             brokers[processName]);
+                broker.freeze();
+            }
+            else if (pubWithUrl.TryGetValue(processName, out url))
+            {
+                formP.BeginInvoke(formP.myDelegate, pubWithUrl[processName]);
+                IPublisher publisher = (IPublisher)Activator.GetObject(
+                                    typeof(IPublisher),
+                             pubWithUrl[processName]);
+                publisher.freeze();
+            }
+            else if (subsWithUrl.TryGetValue(processName, out url))
+            {
+                formP.BeginInvoke(formP.myDelegate, subsWithUrl[processName]);
+                ISubscriber subscriber = (ISubscriber)Activator.GetObject(
+                                    typeof(ISubscriber),
+                             subsWithUrl[processName]);
+                Console.WriteLine("entrei");
+                subscriber.freeze();
+                Console.WriteLine("sai");
             }
         }
 
