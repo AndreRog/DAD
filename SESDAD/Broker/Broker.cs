@@ -193,9 +193,10 @@ namespace Broker
             {
                 if (itsForSend(kvp, e.getTopic()))
                 {
+                    Console.WriteLine("Event Seq:"+name+"->" + e.getNumber());
                     if (lastSeqNumber[name] + 1 == e.getNumber())
                     {
-                        Console.WriteLine("COME OUT COME OUT WHEREVER U ARE!");
+                        Console.WriteLine("Initial Seq:" + lastSeqNumber[name]);
                         ISubscriber sub = (ISubscriber)Activator.GetObject(
                         typeof(ISubscriber),
                         kvp.Value);
@@ -203,34 +204,45 @@ namespace Broker
                         sub.receiveEvent(e.getSender(), e);
                         sendToPM("SubEvent " + sub.getName() + " , " + e.getSender() + " , " + e.getTopic() + " , " + e.getNumber());
                         lastSeqNumber[name] += 1;
+                        Console.WriteLine("End Seq!" + lastSeqNumber[name]);
                         getNextFIFOE(name, e);
-                        
-                        Monitor.Enter(queueEvents);
-                        try
-                        { 
-                            if (queueEvents.Contains(e))
-                              queueEvents.Remove(e);
-                        }
-                        finally
+                        lock (queueEvents) 
                         {
-                            Monitor.Exit(queueEvents);
+                            Console.WriteLine("COME ON IN");
+                            Monitor.Wait(queueEvents);
+                            try
+                            {
+                                Console.WriteLine("NEXT ONE");
+                             if (queueEvents.Contains(e))
+                               queueEvents.Remove(e);
+                         }
+                         finally
+                         {
+                             Console.WriteLine("FREE QUEUE");
+                             Monitor.Pulse(queueEvents);
+                         }
                         }
 
                     }
                     else
                     {
-                        Monitor.Enter(queueEvents);
-                        try{ 
+                        lock (queueEvents) {
+                            Monitor.Wait(queueEvents);
+                            try
+                            {
+                            Console.WriteLine("Go to Priority");
                             queueEvents.Add(e);
                         }
                         finally
                         {
-                            Monitor.Exit(queueEvents);
+                            Monitor.Pulse(queueEvents);
+                        }
                         }
                         
                     }
                     }
                 }
+            Console.WriteLine("LEFT BOY");
 
             }
         
@@ -239,8 +251,10 @@ namespace Broker
         {
             try
             {
-                Monitor.Enter(queueEvents);
-                try { 
+                lock (queueEvents) { 
+                //Monitor.Wait(queueEvents);
+                //try {
+                    Console.WriteLine("NEXT ONE");
                   foreach (Event queueE in queueEvents)
                     {
                         if (e.getTopic().Equals(queueE.getTopic()))
@@ -248,8 +262,10 @@ namespace Broker
                          sentToSubscriberFIFO(queueE.getSender(), queueE);
                         }
                     }
-                } finally {
-                    Monitor.Exit(queueEvents);
+                //} finally {
+                //    Monitor.Pulse(queueEvents);
+                //}
+                  Console.WriteLine("BAZATING");
                 }
             }
             catch (Exception ex) { Console.WriteLine(ex); }
