@@ -56,7 +56,6 @@ namespace PuppetMaster
 
             scriptbox.Enabled = false;
             textBox2.Enabled = false;
-            PMConfig.Enabled = false;
             execute.Enabled = false;
             button2.Enabled = false;
             InitCheck();
@@ -92,8 +91,8 @@ namespace PuppetMaster
 
         private void execute_Click(object sender, EventArgs e)
         {
-            string scriptPath = scriptbox.Text;
-            //string scriptPath = @"..\..\..\script.txt";
+          //  string scriptPath = scriptbox.Text;
+            string scriptPath = @"..\..\..\T3-config.txt";
             StreamReader script = new StreamReader(scriptPath);
             String Line;
 
@@ -361,12 +360,12 @@ namespace PuppetMaster
         }
 
 
-        public void addPublisherRemote(string name, string site, string url,string brokerurl)
+        public void addPublisherRemote(string name, string site, string url, string brokerurl)
         {
 
             String arguments = name + " " + site + " " + url + " " + brokerurl;
             String filename = @"..\..\..\Publisher\bin\Debug\Publisher.exe";
-                Process.Start(filename, arguments);
+            Process.Start(filename, arguments);
 
         }
 
@@ -457,16 +456,17 @@ namespace PuppetMaster
         {
             if (processName.Contains("publisher"))
             {
-                if (this.site.Equals(this.pubWithSite[processName]) || this.single) { 
-                Console.WriteLine(pubWithUrl[processName]);
+                if (this.site.Equals(this.pubWithSite[processName]) || this.single)
+                {
+                    Console.WriteLine(pubWithUrl[processName]);
 
-                formP.BeginInvoke(formP.myDelegate, pubWithUrl[processName]);
-                IPublisher publisher = (IPublisher)Activator.GetObject(
-                      typeof(IPublisher),
-                             this.pubWithUrl[processName]);
+                    formP.BeginInvoke(formP.myDelegate, pubWithUrl[processName]);
+                    IPublisher publisher = (IPublisher)Activator.GetObject(
+                          typeof(IPublisher),
+                                 this.pubWithUrl[processName]);
 
-                SendCrashAsync RemoteDel = new SendCrashAsync(publisher.crash);
-                IAsyncResult RemAra = RemoteDel.BeginInvoke(null, null);
+                    SendCrashAsync RemoteDel = new SendCrashAsync(publisher.crash);
+                    IAsyncResult RemAra = RemoteDel.BeginInvoke(null, null);
 
                 }
                 else
@@ -479,22 +479,22 @@ namespace PuppetMaster
             }
 
 
-            if (processName.Contains("subscriber")) 
+            if (processName.Contains("subscriber"))
             {
                 if (this.site.Equals(this.subsWithSite[processName]) || this.single)
                 {
-                Console.WriteLine(subsWithUrl[processName]);
+                    Console.WriteLine(subsWithUrl[processName]);
 
-                formP.BeginInvoke(formP.myDelegate, subsWithUrl[processName]);
-                ISubscriber subscriber = (ISubscriber)Activator.GetObject(
-                      typeof(ISubscriber),
-                             this.subsWithUrl[processName]);
+                    formP.BeginInvoke(formP.myDelegate, subsWithUrl[processName]);
+                    ISubscriber subscriber = (ISubscriber)Activator.GetObject(
+                          typeof(ISubscriber),
+                                 this.subsWithUrl[processName]);
 
-                SendCrashAsync RemoteDel = new SendCrashAsync(subscriber.crash);
-                IAsyncResult RemAra = RemoteDel.BeginInvoke(null, null);
+                    SendCrashAsync RemoteDel = new SendCrashAsync(subscriber.crash);
+                    IAsyncResult RemAra = RemoteDel.BeginInvoke(null, null);
 
 
-            }
+                }
                 else
                 {
                     IPuppetMaster puppetM = (IPuppetMaster)Activator.GetObject(
@@ -503,19 +503,20 @@ namespace PuppetMaster
                     puppetM.crash(processName);
                 }
             }
-            if (processName.Contains("broker")) {
-                if (this.brokers.Equals(this.brokers[processName]) || this.single)
+            if (processName.Contains("broker"))
             {
-                Console.WriteLine(brokers[processName]);
+                if (this.brokers.Equals(this.brokers[processName]) || this.single)
+                {
+                    Console.WriteLine(brokers[processName]);
 
-                formP.BeginInvoke(formP.myDelegate, brokers[processName]);
-                IBroker broker = (IBroker)Activator.GetObject(
-                      typeof(IBroker),
-                             this.brokers[processName]);
+                    formP.BeginInvoke(formP.myDelegate, brokers[processName]);
+                    IBroker broker = (IBroker)Activator.GetObject(
+                          typeof(IBroker),
+                                 this.brokers[processName]);
 
-                SendCrashAsync RemoteDel = new SendCrashAsync(broker.crash);
-                IAsyncResult RemAra = RemoteDel.BeginInvoke(null, null);
-            }
+                    SendCrashAsync RemoteDel = new SendCrashAsync(broker.crash);
+                    IAsyncResult RemAra = RemoteDel.BeginInvoke(null, null);
+                }
                 else
                 {
                     IPuppetMaster puppetM = (IPuppetMaster)Activator.GetObject(

@@ -167,8 +167,9 @@ namespace Broker
             if(typeOrder.Equals("FIFO")) 
             {
 
-                Thread thread = new Thread(() => this.sentToSubscriberFIFO(name,e));
-                thread.Start();
+                //Thread thread = new Thread(() => this.sentToSubscriberFIFO(name,e));
+                //thread.Start();
+                sentToSubscriberFIFO(name, e);
             }
             
         }
@@ -177,7 +178,7 @@ namespace Broker
         {
 
             bool inside = false;
-            lock (this.queueEvents)
+            lock (this)
             {
 
                 //}
@@ -193,7 +194,7 @@ namespace Broker
                         Console.WriteLine(ex);
                     }
                 }
-
+                Console.WriteLine("Event iD ->" + e.getNumber() + "FROM " + e.getSender());
                 foreach (KeyValuePair<string, string> kvp in topicSubs)
                 {
 
@@ -207,17 +208,18 @@ namespace Broker
                             ISubscriber sub = (ISubscriber)Activator.GetObject(
                             typeof(ISubscriber),
                             kvp.Value);
-                            Console.WriteLine("Sending to : " + kvp.Value + "EVENT :" + e.getNumber() + "FROM:" + name);
+                            Console.WriteLine("Sending to : " + kvp.Value + " EVENT :" + e.getNumber() + "FROM:" + name);
                             sub.receiveEvent(e.getSender(), e);
                             events.Add(new KeyValuePair<string, Event>(name, e));
                             sendToPM("SubEvent " + sub.getName() + " , " + e.getSender() + " , " + e.getTopic() + " , " + e.getNumber());
                             inside = true;
-                            Console.WriteLine("End Seq!" + lastSeqNumber[name]);
 
 
                            //     Console.WriteLine("COME ON IN");
                            if (queueEvents.Contains(e))
                                  queueEvents.Remove(e);
+                           lastSeqNumber[name] += 1;
+                           Console.WriteLine("SENT SUB WITH EVENT NUMBER:" + e.getNumber() + " AND SEQNUMB: " + lastSeqNumber[name] + " PUB:" + e.getSender());
                            getNextFIFOE(name, e);
                            
                         }
@@ -225,43 +227,39 @@ namespace Broker
                         {
 
 
-                                   Console.WriteLine("Go to Priority");
-                                    queueEvents.Add(e);
-                                 //   getNextFIFOE(name, e);
+                                  Console.WriteLine("Go to Priority, Event:" + e.getNumber());
+                                  queueEvents.Add(e);
+                               //   getNextFIFOE(name, lastSeqNumber[name] + 1);
 
                         }
                     }
                 }
-                if(inside)
-                    lastSeqNumber[name] += 1;
-                Console.WriteLine("LEFT BOY");
             }
-            }
+        }
         
 
         private void getNextFIFOE(string name, Event e)
         {
-
-
+            lock (this) { 
             try
             {
                   foreach (Event queueE in this.queueEvents)
                     {
-                        if (e.getTopic().Equals(queueE.getTopic()))
+                        if (queueE.getNumber() == (e.getNumber() + 1) && (queueE.getSender().Equals(e.getSender())))
                         {
-                            Console.WriteLine("FOUND ONE TOPIC");
-                          //sentToSubscriberFIFO(queueE.getSender(), queueE);
-                            Thread thread = new Thread(() => this.sentToSubscriberFIFO(queueE.getSender(), queueE));
-                            thread.Start();
+                           Console.WriteLine("FOUND NEXT MESSAGE : " + queueE.getNumber());
+
+                          sentToSubscriberFIFO(queueE.getSender(), queueE);
+                          //  Thread thread = new Thread(() => this.sentToSubscriberFIFO(queueE.getSender(), queueE));
+                           // thread.Start();
                             break;
                         }
                     }
-                 // Console.WriteLine("BAZATING");
                 
             }
             catch (Exception ex) { Console.WriteLine(ex); }
             }
-        
+        }
 
         public string subscribe(string topic, string URL)
         {
@@ -284,22 +282,24 @@ namespace Broker
 
         public string unsubscribe(string topic, string URL)
         {
-            if (isFrozen)
-            {
-                FrozenEvent fe = new FrozenEvent("UNSUB", topic, URL);
-                frozenEvents.Add(fe);
+            lock (this) { 
+                if (isFrozen)
+                {
+                    FrozenEvent fe = new FrozenEvent("UNSUB", topic, URL);
+                    frozenEvents.Add(fe);
+                    return "ACK";
+                }
+                // pode eliminar o errado caso existam 2 ocorrencias , FIX ME
+                Console.WriteLine("Received Unsubscribe");
+                foreach(KeyValuePair<string,string>  kvp in topicSubs)
+	            {
+		                if(kvp.Key.Equals(topic) && kvp.Value.Equals(URL)){
+                            topicSubs.Remove(kvp);
+                            break;
+                        }
+	            }
                 return "ACK";
             }
-            // pode eliminar o errado caso existam 2 ocorrencias , FIX ME
-            Console.WriteLine("Received Unsubscribe");
-            foreach(KeyValuePair<string,string>  kvp in topicSubs)
-	        {
-		            if(kvp.Key.Equals(topic) && kvp.Value.Equals(URL)){
-                        topicSubs.Remove(kvp);
-                        break;
-                    }
-	        }
-            return "ACK";
         }
 
         public void crash()

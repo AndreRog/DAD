@@ -108,7 +108,7 @@ namespace Publisher
 
                     this.broker.receivePub(this.name, e);
                     events.Add(new KeyValuePair<string, Event>(name, e));
-                    Console.WriteLine("Creating Event : " + topic);
+                    Console.WriteLine("Creating Event : " + topic + e.getNumber());
                     Thread.Sleep(sleep);
                 }
             }
