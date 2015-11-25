@@ -141,16 +141,16 @@ namespace Broker
                 return "ACK";
             }
 
-            Console.WriteLine("Received Publish");
+            Console.WriteLine("Received Publish" + "Name: " + name + "eventTopic: " + e.getTopic() + " " + e.getNumber());
             if (!(name.StartsWith("broker")))
             {
                 sendToPM("PubEvent " + name + " , " + e.getSender() + " , " + e.getTopic() + " , " + e.getNumber());
             }
 
 
-
-               sentToSub(name, e);
                propagate(e);
+               sentToSub(name, e);
+
 
             return "ACK";
         }
@@ -167,9 +167,9 @@ namespace Broker
             if(typeOrder.Equals("FIFO")) 
             {
 
-                //Thread thread = new Thread(() => this.sentToSubscriberFIFO(name,e));
-                //thread.Start();
-                sentToSubscriberFIFO(name, e);
+                Thread thread = new Thread(() => this.sentToSubscriberFIFO(name,e));
+               thread.Start();
+               // sentToSubscriberFIFO(name, e);
             }
             
         }
@@ -177,7 +177,7 @@ namespace Broker
         private void sentToSubscriberFIFO(string name, Event e)
         {
 
-            bool inside = false;
+            bool existsTopic = false;
             lock (this)
             {
 
@@ -201,7 +201,7 @@ namespace Broker
                     if (itsForSend(kvp, e.getTopic()))
                     {
                         Console.WriteLine("Found a Subscriber:" + kvp.Value);
-                        
+                        existsTopic = true;
                         if (lastSeqNumber[name] + 1 == e.getNumber())
                         {
 
@@ -212,7 +212,7 @@ namespace Broker
                             sub.receiveEvent(e.getSender(), e);
                             events.Add(new KeyValuePair<string, Event>(name, e));
                             sendToPM("SubEvent " + sub.getName() + " , " + e.getSender() + " , " + e.getTopic() + " , " + e.getNumber());
-                            inside = true;
+
 
 
                            //     Console.WriteLine("COME ON IN");
@@ -234,6 +234,22 @@ namespace Broker
                         }
                     }
                 }
+                if (!existsTopic)
+                    {
+
+                        if ((lastSeqNumber[name] + 1 == e.getNumber()) && (name.Equals(e.getSender())))
+                        {
+                            lastSeqNumber[name] += 1;
+                            getNextFIFOE(name, e);
+                            Console.WriteLine(" DOTHESUM Event iD ->" + e.getNumber() + "FROM " + e.getSender() + "TOPIC:" + e.getTopic());
+                        }
+                        else
+                        {
+                            queueEvents.Add(e);
+                            //getNextFIFOE(name, e);
+                        }
+
+                    }
             }
         }
         
