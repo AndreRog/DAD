@@ -92,7 +92,7 @@ namespace PuppetMaster
         private void execute_Click(object sender, EventArgs e)
         {
           //  string scriptPath = scriptbox.Text;
-            string scriptPath = @"..\..\..\T2-config.txt";
+            string scriptPath = @"..\..\..\T3-config.txt";
             StreamReader script = new StreamReader(scriptPath);
             String Line;
 

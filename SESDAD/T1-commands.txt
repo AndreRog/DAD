@@ -1,0 +1,7 @@
+Subscriber subscriber1 Subscribe /testtopic
+Publisher publisher0 Publish 12 Ontopic /testtopic Interval 5000
+Wait 30000
+Status
+Subscriber subscriber1 Unsubscribe /testtopic
+Wait 3000
+Status

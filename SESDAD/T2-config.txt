@@ -1,0 +1,34 @@
+RoutingPolicy flooding
+Ordering FIFO
+LoggingLevel full
+Site site0 Parent none
+Site site1 Parent site0
+Site site2 Parent site0
+Site site3 Parent site2
+Site site4 Parent site2
+Process broker0 is broker On site0 URL tcp://localhost:3330/broker
+Process publisher00 is publisher On site0 URL tcp://localhost:2220/pub
+Process broker1 is broker On site1 URL tcp://localhost:3331/broker
+Process publisher01 is publisher On site1 URL tcp://localhost:2221/pub
+Process broker2 is broker On site2 URL tcp://localhost:3332/broker
+Process broker3 is broker On site3 URL tcp://localhost:3333/broker
+Process subscriber1 is subscriber On site3 URL tcp://localhost:1111/sub
+Process broker4 is broker On site4 URL tcp://localhost:3334/broker
+Process subscriber2 is subscriber On site4 URL tcp://localhost:1112/sub
+Wait 3000
+Subscriber subscriber1 Subscribe /p00-0
+Subscriber subscriber1 Subscribe /p00-1
+Subscriber subscriber1 Subscribe /p01-1
+Subscriber subscriber2 Subscribe /p00-1
+Subscriber subscriber2 Subscribe /p01-0
+Subscriber subscriber2 Subscribe /p01-1
+Publisher publisher00 Publish 120 Ontopic /p00-0 Interval 500
+Publisher publisher00 Publish 120 Ontopic /p00-1 Interval 500
+Publisher publisher01 Publish 120 Ontopic /p01-0 Interval 500
+Publisher publisher01 Publish 120 Ontopic /p01-1 Interval 500
+Wait 7000
+Subscriber subscriber1 Unsubscribe /p00-0
+Subscriber subscriber2 Unsubscribe /p01-0
+
+
+

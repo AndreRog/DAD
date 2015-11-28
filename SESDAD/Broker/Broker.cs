@@ -194,7 +194,7 @@ namespace Broker
                         Console.WriteLine(ex);
                     }
                 }
-                Console.WriteLine("Event iD ->" + e.getNumber() + "FROM " + e.getSender());
+               // Console.WriteLine("Event iD ->" + e.getNumber() + "FROM " + e.getSender());
                 foreach (KeyValuePair<string, string> kvp in topicSubs)
                 {
 
@@ -219,7 +219,7 @@ namespace Broker
                            if (queueEvents.Contains(e))
                                  queueEvents.Remove(e);
                            lastSeqNumber[name] += 1;
-                           Console.WriteLine("SENT SUB WITH EVENT NUMBER:" + e.getNumber() + " AND SEQNUMB: " + lastSeqNumber[name] + " PUB:" + e.getSender());
+                       //    Console.WriteLine("SENT SUB WITH EVENT NUMBER:" + e.getNumber() + " AND SEQNUMB: " + lastSeqNumber[name] + " PUB:" + e.getSender());
                            getNextFIFOE(name, e);
                            
                         }
@@ -241,7 +241,7 @@ namespace Broker
                         {
                             lastSeqNumber[name] += 1;
                             getNextFIFOE(name, e);
-                            Console.WriteLine(" DOTHESUM Event iD ->" + e.getNumber() + "FROM " + e.getSender() + "TOPIC:" + e.getTopic());
+                           
                         }
                         else
                         {
@@ -263,7 +263,7 @@ namespace Broker
                     {
                         if (queueE.getNumber() == (e.getNumber() + 1) && (queueE.getSender().Equals(e.getSender())))
                         {
-                           Console.WriteLine("FOUND NEXT MESSAGE : " + queueE.getNumber());
+                         //  Console.WriteLine("FOUND NEXT MESSAGE : " + queueE.getNumber());
 
                           sentToSubscriberFIFO(queueE.getSender(), queueE);
                           //  Thread thread = new Thread(() => this.sentToSubscriberFIFO(queueE.getSender(), queueE));
@@ -290,7 +290,6 @@ namespace Broker
             
             if (typeRouting.Equals("filtering"))
             {
-                Console.WriteLine("Mandei interesse");
                 tellBrokersInterest(this.myUrl,topic);
             }
             return "ACK";
@@ -305,18 +304,96 @@ namespace Broker
                     frozenEvents.Add(fe);
                     return "ACK";
                 }
+        //        bool isfilter = false;
                 // pode eliminar o errado caso existam 2 ocorrencias , FIX ME
                 Console.WriteLine("Received Unsubscribe");
                 foreach(KeyValuePair<string,string>  kvp in topicSubs)
 	            {
-		                if(kvp.Key.Equals(topic) && kvp.Value.Equals(URL)){
-                            topicSubs.Remove(kvp);
-                            break;
-                        }
-	            }
+
+                    if (this.typeRouting.Equals("filtering"))
+                    {
+                        removeInterestBrokers(topic,myUrl);
+                        //if (topic.Equals(kvp.Key))
+                        //{
+                        //    isfilter = true;
+                        //    removeInterestBrokers();
+                        //    break;
+                        //}
+                    }
+                    if (kvp.Key.Equals(topic) && kvp.Value.Equals(URL))
+                    {
+                         topicSubs.Remove(kvp);
+                         break;
+	                }
+
+                }
                 return "ACK";
             }
         }
+
+        private void removeInterestBrokers(string topic, string fromURL)
+        {
+            Console.WriteLine("FFS");
+            if (!(parentURL.Equals("null")))
+            {
+                if (!parentURL.Equals(fromURL))
+                {
+                    IBroker parent = (IBroker)Activator.GetObject(
+                    typeof(IBroker),
+                    this.parentURL);
+                    Console.WriteLine("Remove to Parent: " + topic + fromURL);
+                    parent.removeInterest(topic, myUrl);
+
+                    sendToPM("BroEvent " + this.name + " , Removing Interest in " + topic);
+                }
+
+            }
+            if (!(childs.Count == 0))
+            {
+                foreach (string childurl in childs.Values)
+                {
+
+                    if (!childurl.Equals(fromURL))
+                    {
+
+                        IBroker child = (IBroker)Activator.GetObject(
+                            typeof(IBroker),
+                            childurl);
+                        Console.WriteLine("Remove to child: " + topic + childurl);
+                        child.removeInterest(topic, myUrl);
+
+                        sendToPM("BroEvent " + this.name + " , removing Interest in " + topic);
+                    }
+                }
+            }
+        }
+
+        public void removeInterest(string topic, string fromURL)
+        {
+            Console.WriteLine("HAVE TO REMOVE");
+            bool existsTopic = false;
+            KeyValuePair<string, string> kvp1;
+            kvp1 = new KeyValuePair<string, string>(topic, fromURL);
+            if (filteringInterest.Contains(kvp1))
+            {
+                Console.WriteLine("Entrei");
+                filteringInterest.Remove(kvp1);
+            }
+            foreach (KeyValuePair<string, string> kvp in topicSubs)
+            {
+                if (kvp.Key.Equals(topic))
+                {
+                    existsTopic = true;
+                    break;
+                }
+            }
+            if (!existsTopic)
+            {
+
+                removeInterestBrokers(topic, fromURL);
+            }
+        }
+
 
         public void crash()
         {
@@ -380,18 +457,28 @@ namespace Broker
 
         public void floodFiltered(Event e)
         {
-            Console.WriteLine("Filtering started");
+            //ok stop it right 
+             string lastHop = e.getLastHop();
+            e.setLastHop(this.myUrl);
             foreach (KeyValuePair<string,string> kvp in filteringInterest)
             {
-                if(kvp.Key.Equals(e.getTopic()))
+                 //&& kvp.Value.Equals(this.myUrl)
+                if (kvp.Key.Equals(e.getTopic()))
                 {
-                   IBroker broker = (IBroker)Activator.GetObject(
-                   typeof(IBroker),
-                   kvp.Value);
-                   broker.sendToSubscriber(e);
+
+
+                    if (!lastHop.Equals(kvp.Value))
+                    {
+                       Console.WriteLine("Filtering to:" + kvp.Value);
+                       IBroker broker = (IBroker)Activator.GetObject(
+                       typeof(IBroker),
+                       kvp.Value);
+                       broker.receivePub(e.getSender(),e);
+                    }
                 }
             }
         }
+
 
         public void floodNoOrder(Event e)
         {
@@ -466,6 +553,7 @@ namespace Broker
                     this.parentURL);
 
                     parent.receiveInterest(topic, myUrl);
+                    Console.WriteLine("Expand to Parent: " + topic + fromURL);
                     sendToPM("BroEvent " + this.name + " , Giving Interest in " + topic);
                 }
 
@@ -481,6 +569,7 @@ namespace Broker
                             childurl);
 
                         child.receiveInterest(topic, myUrl);
+                        Console.WriteLine("Expand to child: " + topic + fromURL);
                         sendToPM("BroEvent " + this.name + " , Giving Interest in " + topic);
                     }
                 }
@@ -494,7 +583,8 @@ namespace Broker
             if(!filteringInterest.Contains(kvp))
             {
                 filteringInterest.Add(kvp);
-                Console.WriteLine("Adicionei interesse");
+                tellBrokersInterest(name, topic);
+                Console.WriteLine("Adicionei interesse from " + name + topic);
             }
         }
 

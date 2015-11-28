@@ -22,6 +22,7 @@ namespace CommonTypes
         void unfreeze();
         void freeze();
         void receiveInterest(string topic, string name);
+        void removeInterest(string topic, string myUrl);
         void sendToSubscriber(Event e);
     }
 
