@@ -370,7 +370,7 @@ namespace Broker
 
         public void removeInterest(string topic, string fromURL)
         {
-            Console.WriteLine("HAVE TO REMOVE");
+            Console.WriteLine("TESTEST");
             bool existsTopic = false;
             KeyValuePair<string, string> kvp1;
             kvp1 = new KeyValuePair<string, string>(topic, fromURL);
