@@ -29,6 +29,8 @@ Publisher publisher01 Publish 120 Ontopic /p01-1 Interval 500
 Wait 7000
 Subscriber subscriber1 Unsubscribe /p00-0
 Subscriber subscriber2 Unsubscribe /p01-0
+Wait 7000
+Subscriber subscriber1 Subscribe /p00-0
 
 
 

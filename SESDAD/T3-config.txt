@@ -1,5 +1,5 @@
 RoutingPolicy filtering
-Ordering NO
+Ordering FIFO
 Site site0 Parent none
 Site site1 Parent site0
 Site site2 Parent site0
@@ -21,14 +21,12 @@ Process subscriber5 is subscriber On site5 URL tcp://localhost:1115/sub
 Wait 3000
 Subscriber subscriber0 Subscribe /p00-0
 Subscriber subscriber1 Subscribe /p00-0
-Subscriber subscriber1 Subscribe /p00-1
 Subscriber subscriber3 Subscribe /p00-0
 Subscriber subscriber3 Subscribe /p00-1
 Subscriber subscriber4 Subscribe /p00-0
 Subscriber subscriber5 Subscribe /p00-0
-Subscriber subscriber1 Unsubscribe /p00-1
-Publisher publisher00 Publish 5 Ontopic /p00-0 Interval 500
-Publisher publisher00 Publish 5 Ontopic /p00-1 Interval 500
-Wait 10000
-Wait 10000
+Publisher publisher00 Publish 120 Ontopic /p00-0 Interval 500
+Publisher publisher00 Publish 120 Ontopic /p00-1 Interval 500
+Wait 30000
+Subscriber subscriber0 Subscribe /p00-1
 

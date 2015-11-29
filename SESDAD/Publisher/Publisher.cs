@@ -51,8 +51,9 @@ namespace Publisher
         private IBroker broker;
 
         private List<KeyValuePair<string, Event>> events;
+        private Dictionary<string, int> pubSeq;
 
-        private static int seqNumber = 0;
+   //     private static int seqNumber = 0;
 
         private bool isFrozen = false;
 
@@ -67,24 +68,26 @@ namespace Publisher
             this.brokerUrl = brokerUrl;
             this.broker = broker;
             this.events = new List<KeyValuePair<string, Event>>();
+            this.pubSeq = new Dictionary<string,int>();
             this.frozenEvents = new List<FrozenEvent>();
         }
 
-        public int SeqNumber()
-        {
-            return Interlocked.Increment(ref seqNumber);
+        //Antes de reestruturação
+        //public int SeqNumber()
+        //{
+        //    return Interlocked.Increment(ref seqNumber);
 
-        }
+        //}
 
         public void pubEvent(string numberEvents, string topic, string interval)
         {
-            //thread bad shit see it
             Thread thread = new Thread(() => this.sendEvent(numberEvents, topic, interval));
             thread.Start();
         }
 
         public void sendEvent(string numberEvents, string topic, string interval)
         {
+           
             Event e;
             int times = Int32.Parse(numberEvents);
             int sleep = Int32.Parse(interval);
@@ -92,9 +95,15 @@ namespace Publisher
             int eventNumber;
 
             Console.WriteLine(this.brokerUrl);
+            if (!this.pubSeq.ContainsKey(topic))
+            {
+                this.pubSeq.Add(topic, 0);
+            }
             for (i = 0; i < times; i++)
             {
-                eventNumber = this.SeqNumber();
+                this.pubSeq[topic] += 1;
+                eventNumber = this.pubSeq[topic];
+
                 e = new Event(topic, "",this.name, eventNumber);
 
                 if (isFrozen)
@@ -108,7 +117,7 @@ namespace Publisher
 
                     this.broker.receivePub(this.name, e);
                     events.Add(new KeyValuePair<string, Event>(name, e));
-                    Console.WriteLine("Creating Event : " + topic + e.getNumber());
+                    Console.WriteLine("Creating Event : " + topic + "EventNumber:" +  e.getNumber());
                     Thread.Sleep(sleep);
                 }
             }

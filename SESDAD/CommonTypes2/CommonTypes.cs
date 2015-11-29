@@ -24,6 +24,8 @@ namespace CommonTypes
         void receiveInterest(string topic, string name);
         void removeInterest(string topic, string myUrl);
         void sendToSubscriber(Event e);
+        void adjustEvents(string topic, int maxPerTopic);
+        int returnSeqTopic(string topic,string name);
     }
 
     public interface ISubscriber
@@ -44,7 +46,7 @@ namespace CommonTypes
         void pubEvent(string numberEvents, string topicName, string interva);
         void crash();
         void status();
-        int SeqNumber();
+       // int SeqNumber();
         void unfreeze();
         void freeze();
     }
@@ -112,6 +114,98 @@ namespace CommonTypes
         {
             return number;
         }
+    }
+
+
+    [Serializable]
+    public class PubInfo
+    {
+        private string name;
+
+        private string url;
+
+        private Dictionary<string, int> topicSeqNumber;
+
+        //private string topic;
+
+        //private int seqNumber;
+
+        public PubInfo(string name) {
+            this.name = name;
+            this.topicSeqNumber = new Dictionary<string, int>();
+            //this.topic = topic;
+            //this.seqNumber = seq;
+        }
+
+        public void setName(string name)
+        {
+            this.name = name;
+        }
+
+
+        public void addTopic(string topic)
+        {
+            lock(this)
+            {
+                if (topicSeqNumber.Count > 0) 
+                { 
+                     if (!topicSeqNumber.ContainsKey(topic)) { 
+                        this.topicSeqNumber.Add(topic, 0);
+                     }
+                }
+                else
+                {
+                    this.topicSeqNumber.Add(topic, 0);
+                }
+            }
+        }
+
+        public bool hasTopic(string topic)
+        {
+            if (topicSeqNumber.ContainsKey(topic))
+            {
+                return true;
+            }
+            return false;
+        }
+
+        public int getSeqNumber(string topic) 
+        {
+         if (this.topicSeqNumber.ContainsKey(topic))
+            return this.topicSeqNumber[topic];
+         return -1;
+        }
+
+        public void setSeqNumber(string topic, int max) 
+        { 
+            if (this.topicSeqNumber.ContainsKey(topic))
+            {
+                this.topicSeqNumber[topic] = max;
+            }
+        }
+
+        public void addSeqNumber(string topic)
+        {
+            this.topicSeqNumber[topic] += 1;
+        }
+
+        public string getName()
+        {
+            return this.name;
+        }
+
+
+        //public void setTopic(string topic)
+        //{
+        //    this.topic = topic;
+        //}
+
+        //public void setseqNumber(int seq)
+        //{
+        //    this.seqNumber = seq;
+        //}
+
+
     }
 
     public class FrozenEvent
