@@ -68,8 +68,8 @@ namespace Broker
         private List<KeyValuePair<string, string>> filteringInterest;
         private List<PubInfo> pubTopicSeq;
         private List<FrozenEvent> frozenEvents;
-        private Dictionary<string,int> maxPerTopic;
-
+       // private Dictionary<string,int> maxPerTopic;
+        private List<PubInfo> maxPerTopic;
       
         public Broker(string name, string parent,string myUrl,string policy, string order, string logLvl) {
             this.parentURL = parent;
@@ -92,7 +92,7 @@ namespace Broker
             this.queueEvents = new List<Event>();
             this.frozenEvents = new List<FrozenEvent>();
             this.pubTopicSeq = new List<PubInfo>();
-            this.maxPerTopic = new Dictionary<string, int>();
+            this.maxPerTopic = new List<PubInfo>();
         }
 
         public bool hasChild()
@@ -158,12 +158,10 @@ namespace Broker
             }
 
             //For adjustment of events in filterings
-            if (this.typeRouting.Equals("filtering"))
+            if(this.typeRouting.Equals("filtering"))
             {
                 updateMax(e);
             }
-
-
                propagate(e);
                sentToSub(name, e);
 
@@ -174,15 +172,36 @@ namespace Broker
         //Function that keeps the max SeqNumber for each topic for adjustments purpose on filtering
         private void updateMax(Event e)
         {
-            if (this.maxPerTopic.ContainsKey(e.getTopic()))
+            bool entrei = false;
+            foreach(PubInfo maxPubs in this.maxPerTopic)
             {
-                if (e.getNumber() > this.maxPerTopic[e.getTopic()])
-                    this.maxPerTopic[e.getTopic()] = e.getNumber();
+                if(maxPubs.getName().Equals(e.getSender()))
+                {
+                    if(e.getNumber() > maxPubs.getSeqNumber(e.getTopic()))
+                    {
+                        maxPubs.setSeqNumber(e.getTopic(),e.getNumber());
+                        entrei = true;
+                    }
+                }
             }
-            else
+            if(!entrei)
             {
-                this.maxPerTopic.Add(e.getTopic(), e.getNumber());
+                PubInfo pubI = new PubInfo(e.getSender());
+                pubI.addTopic(e.getTopic());
+                pubI.setSeqNumber(e.getTopic(), e.getNumber());
+                this.maxPerTopic.Add(pubI);
             }
+
+            
+            //if (this.maxPerTopic.ContainsKey(e.getTopic()))
+            //{
+            //    if (e.getNumber() > this.maxPerTopic[e.getTopic()])
+            //        this.maxPerTopic[e.getTopic()] = e.getNumber();
+            //}
+            //else
+            //{
+            //    this.maxPerTopic.Add(e.getTopic(), e.getNumber());
+            //}
         }
 
         private void sentToSub(string name, Event e)
@@ -229,6 +248,7 @@ namespace Broker
 
                     foreach (PubInfo pubT in this.pubTopicSeq)
                     {
+
                         if (pubT.getName().Equals(name))
                         {
                             existsPub = true;
@@ -342,7 +362,8 @@ namespace Broker
             }
             Console.WriteLine("Received Subscribe");
             this.topicSubs.Add(new KeyValuePair<string,string>(topic, URL));
-            
+
+            //this.maxPerTopic.Add(topic, 0);
             if (typeRouting.Equals("filtering"))
             {
                 tellBrokersInterest(this.myUrl,topic);
@@ -362,6 +383,10 @@ namespace Broker
         //        bool isfilter = false;
                 // pode eliminar o errado caso existam 2 ocorrencias , FIX ME
                 Console.WriteLine("Received Unsubscribe");
+               foreach (PubInfo pub in this.pubTopicSeq)
+               {
+               
+               }
                 foreach(KeyValuePair<string,string>  kvp in topicSubs)
 	            {
 
@@ -375,6 +400,7 @@ namespace Broker
                         //    break;
                         //}
                     }
+
                     if (kvp.Key.Equals(topic) && kvp.Value.Equals(URL))
                     {
                          topicSubs.Remove(kvp);
@@ -425,20 +451,26 @@ namespace Broker
 
         public void removeInterest(string topic, string fromURL)
         {
+            Console.WriteLine("REMOVING  LOCK");
             lock (this) { 
-                Console.WriteLine("TESTEST");
+                Console.WriteLine("REMOVING WON LOCK");
                 bool existsTopic = false;
                 KeyValuePair<string, string> kvp1;
                 kvp1 = new KeyValuePair<string, string>(topic, fromURL);
                 if (filteringInterest.Contains(kvp1))
                 {
-                    Console.WriteLine("Entrei");
+                    Console.WriteLine("ENTREI E RETIREI DO MEU INTERESSE!");
                     filteringInterest.Remove(kvp1);
+                    foreach (KeyValuePair<string, string> t in filteringInterest)
+                    {
+                        Console.WriteLine("FILTERING TABLE ---->" + t.Key +"-->" + t.Value);
+                    }
                 }
                 foreach (KeyValuePair<string, string> kvp in topicSubs)
                 {
                     if (kvp.Key.Equals(topic))
                     {
+
                         existsTopic = true;
                         break;
                     }
@@ -520,11 +552,10 @@ namespace Broker
                 e.setLastHop(this.myUrl);
                 foreach (KeyValuePair<string,string> kvp in filteringInterest)
                 {
+                   // Console.WriteLine("THIS IS THE FLOOD"+kvp.Value);
                      //&& kvp.Value.Equals(this.myUrl)
-                    if (kvp.Key.Equals(e.getTopic()))
+                    if (itsForSendInterest(kvp, e.getTopic()))
                     {
-
-
                         if (!lastHop.Equals(kvp.Value))
                         {
                            Console.WriteLine("Filtering to:" + kvp.Value);
@@ -603,106 +634,165 @@ namespace Broker
 
         private void tellBrokersInterest(string fromURL,string topic)
         {
-            if (!(parentURL.Equals("null")))
+            lock (this)
             {
-                if (!parentURL.Equals(fromURL))
+                Console.WriteLine("TELLING EVERYONE FROM:" + fromURL);
+                if (!(parentURL.Equals("null")))
                 {
-                    IBroker parent = (IBroker)Activator.GetObject(
-                    typeof(IBroker),
-                    this.parentURL);
-                    Console.WriteLine("Expand to Parent: " + topic + parentURL);
-                    parent.receiveInterest(topic, myUrl);
-
-                    sendToPM("BroEvent " + this.name + " , Giving Interest in " + topic);
-                }
-
-            }
-            if (!(childs.Count == 0))
-            {
-                foreach (string childurl in childs.Values)
-                {
-                    if (!childurl.Equals(fromURL))
+                    if (!parentURL.Equals(fromURL))
                     {
-                        IBroker child = (IBroker)Activator.GetObject(
-                            typeof(IBroker),
-                            childurl);
-                        Console.WriteLine("Expand to child: " + topic + childurl);
-                        child.receiveInterest(topic, myUrl);
+                        IBroker parent = (IBroker)Activator.GetObject(
+                        typeof(IBroker),
+                        this.parentURL);
+                        Console.WriteLine("Expand to Parent: " + topic + parentURL);
+                        parent.receiveInterest(topic, myUrl);
 
                         sendToPM("BroEvent " + this.name + " , Giving Interest in " + topic);
                     }
+
+                }
+                if (!(childs.Count == 0))
+                {
+                    foreach (string childurl in childs.Values)
+                    {
+                        if (!childurl.Equals(fromURL))
+                        {
+                            IBroker child = (IBroker)Activator.GetObject(
+                                typeof(IBroker),
+                                childurl);
+                            Console.WriteLine("Expand to child: " + topic + childurl);
+                            child.receiveInterest(topic, myUrl);
+
+                            sendToPM("BroEvent " + this.name + " , Giving Interest in " + topic);
+                        }
+                    }
                 }
             }
         }
+
 
         public void receiveInterest(string topic, string url)
         {
-            KeyValuePair<string,string> kvp;
-            int max = -1;
-            kvp = new KeyValuePair<string,string>(topic, url);
-            if(!filteringInterest.Contains(kvp))
+            lock (this)
             {
-                filteringInterest.Add(kvp);
-                tellBrokersInterest(url, topic);
-                Console.WriteLine("Adicionei interesse from " + url + topic);
-               
-                if(maxPerTopic.ContainsKey(topic)){
-                    Console.WriteLine("I have the max");
-                    max = maxPerTopic[topic];
-                }
-                else
+                KeyValuePair<string, string> kvp;
+                int max = 0;
+                kvp = new KeyValuePair<string, string>(topic, url);
+                if (!filteringInterest.Contains(kvp))
                 {
-                    Console.WriteLine("Going to ask my neighboors");
-                    max = askNeighboors(topic, this.myUrl);
-                    Console.WriteLine("Max is ------>" + max);
+                    filteringInterest.Add(kvp);
+                    Console.WriteLine("Adicionei interesse from " + url + topic);
+                    tellBrokersInterest(url, topic);
 
-                }
-                Console.WriteLine("ASKED THE NEIGHBORS");
-                if (max != -1) {
-                    Console.WriteLine("I'm in SHOULD I?");
-                  if (this.childs.ContainsValue(url))
+                    foreach(PubInfo pubMax in this.maxPerTopic)
                     {
-                        foreach(KeyValuePair<string,string> child in childs){
-                            if(child.Value.Equals(url))
+                        Console.WriteLine(pubMax.getName() + "---->" + pubMax.getSeqNumber(topic));
+                        if (pubMax.hasTopic(topic))
+                        {
+                            foreach(string topicAux in pubMax.getValues().Keys)
                             {
-                               IBroker broker = (IBroker)Activator.GetObject(
-                                typeof(IBroker),
-                               child.Value);
-                               broker.adjustEvents(topic, max);
+                                Console.WriteLine("I have the max ----->" + max);
+                                if (pubMax.giveNumber(topic,topicAux) && pubMax.getSeqNumber(topicAux) > 0 )
+                                    max = pubMax.getSeqNumber(topicAux);
+                                else
+                                   max = askNeighboors(topic, url, pubMax.getName());
+
+
+                            // Vê isto deficiente de merda quando chegares. this.maxPerTopic
+                                if(max > 0)
+                                {
+                                    Console.WriteLine("I'm in SHOULD I? MAX QUE VAI FDP " + max);
+                                    if (this.childs.ContainsValue(url))
+                                    {
+                                        //pubMax.setSeqNumber(topic, max);
+                                        foreach (KeyValuePair<string, string> child in childs)
+                                        {
+                                            if (child.Value.Equals(url))
+                                            {
+                                                IBroker broker = (IBroker)Activator.GetObject(
+                                                 typeof(IBroker),
+                                                child.Value);
+                                                broker.adjustEvents(topicAux, max, pubMax.getName());
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        if (!parentURL.Equals("null") && parentURL.Equals(url))
+                                        {
+                                            IBroker broker = (IBroker)Activator.GetObject(
+                                                    typeof(IBroker),
+                                                    parentURL);
+                                            broker.adjustEvents(topicAux, max, pubMax.getName());
+                                        }
+                                    }
+                                }                            
                             }
                         }
-                    }
-                    else
-                    {
-                        if (!parentURL.Equals("null") && parentURL.Equals(url))
+                        else
                         {
-                            IBroker broker = (IBroker)Activator.GetObject(
-                                    typeof(IBroker),
-                                    parentURL);
-                            broker.adjustEvents(topic, max);
+                            Console.WriteLine("Going to ask my neighboors");
+                            max = askNeighboors(topic, url, pubMax.getName());
+                            Console.WriteLine("Max is ------>" + max);
+
+                            Console.WriteLine("ASKED THE NEIGHBORS");
+                            if (!(max <= 0))
+                            {
+
+                                Console.WriteLine("I'm in SHOULD I? MAX QUE VAI FDP " + max);
+                                if (this.childs.ContainsValue(url))
+                                {
+                                    //pubMax.setSeqNumber(topic, max);
+                                    foreach (KeyValuePair<string, string> child in childs)
+                                    {
+                                        if (child.Value.Equals(url))
+                                        {
+                                            IBroker broker = (IBroker)Activator.GetObject(
+                                             typeof(IBroker),
+                                            child.Value);
+                                            broker.adjustEvents(topic, max, pubMax.getName());
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    if (!parentURL.Equals("null") && parentURL.Equals(url))
+                                    {
+                                        IBroker broker = (IBroker)Activator.GetObject(
+                                                typeof(IBroker),
+                                                parentURL);
+                                        broker.adjustEvents(topic, max, pubMax.getName());
+                                    }
+                                }
+                            }
+
                         }
+
                     }
+
                 }
-            }
+
+            } 
         }
 
-        private int askNeighboors(string topic, string url)
+        private int askNeighboors(string topic, string url,string pubName)
         {
-            int max = -1;
-            int aux = -1;
+            int max = 0;
+            int aux = 0;
             lock (maxPerTopic) 
             {
-                Console.WriteLine("INSIDE ASK ----->" + url);
+                Console.WriteLine("INSIDE ASK ----->" + url + " :::::" + topic);
                 foreach (KeyValuePair<string, string> child in childs) 
                 {
-                    Console.WriteLine("Neighbor: " + child.Value);
+
                     if(!child.Value.Equals(url))
                     {
                         IBroker broker = (IBroker)Activator.GetObject(
                                 typeof(IBroker),
                                 child.Value);
                         //Método que devolve um int que devolve o max seq para o topico topic
-                        aux = broker.returnSeqTopic(topic, url);
+                        Console.WriteLine("Child: " + child.Value);
+                        aux = broker.returnSeqTopic(topic, this.myUrl, pubName);
                         if(aux > max)
                         {
                             max = aux;
@@ -716,7 +806,7 @@ namespace Broker
                                 typeof(IBroker),
                                parentURL);
                     //Método que devolve um int que devolve o max seq para o topico topic
-                    aux = broker.returnSeqTopic(topic, url);
+                    aux = broker.returnSeqTopic(topic, this.myUrl, pubName);
                     if(aux > max)
                     {
                         max = aux;
@@ -726,18 +816,18 @@ namespace Broker
             return max;
         }
 
-        public int returnSeqTopic(string topic,string url)
+        public int returnSeqTopic(string topic,string url,string pubName)
         {
          //   lock (maxPerTopic) 
-           // { 
-                if(this.maxPerTopic.ContainsKey(topic))
+           // {
+            foreach (PubInfo pubMax in this.maxPerTopic)
+            {
+                if (pubMax.hasTopic(topic))
                 {
-                    return maxPerTopic[topic];
+                    return pubMax.getSeqNumber(topic);
                 }
-                else
-                {
-                    return askNeighboors(topic, this.myUrl);
-                }
+            }
+           return askNeighboors(topic, url, pubName);
            // }
         }
 
@@ -759,17 +849,82 @@ namespace Broker
             }
         }
 
-        public void adjustEvents(string topic, int max)
+        public void adjustEvents(string topic, int max, string pubName)
         {
-            foreach(PubInfo pub in this.pubTopicSeq)
+
+            lock (maxPerTopic) {
+                Console.WriteLine("CORRESPONDING ADJUSTS");
+                localPubAdjust(topic,max,pubName);
+                localMaxAdjust(topic, max, pubName);
+                
+            }
+        }
+
+        private void localMaxAdjust(string topic, int max, string pubName)
+        {
+            bool inside = false;
+            Console.WriteLine("MAX IS MAAAAAAAAX"+max);
+            foreach (PubInfo pub in this.maxPerTopic)
             {
-                if(pub.hasTopic(topic))
+                if (pub.getName().Equals(pubName))
                 {
-                    if (max > pub.getSeqNumber(topic)) 
+                    inside = true;
+                    if (pub.hasTopic(topic))
                     {
-                        pub.setSeqNumber(topic,max);
+                        if (max > pub.getSeqNumber(topic))
+                        {
+                            pub.setSeqNumber(topic, max );
+                        }
+                    }
+                    else
+                    {
+                        pub.addTopic(topic);
+                        pub.setSeqNumber(topic, max );
                     }
                 }
+            }
+
+            if (!inside)
+            {
+                PubInfo pubInfo = new PubInfo(pubName);
+                pubInfo.addTopic(topic);
+                pubInfo.setSeqNumber(topic, max);
+                this.maxPerTopic.Add(pubInfo);
+            }
+        }
+
+        private void localPubAdjust(string topic, int max, string pubName)
+        {
+            bool inside = false;
+            Console.WriteLine("MAX DO LOCAL PUBAJUST---->" + max);
+            foreach (PubInfo pub in this.pubTopicSeq)
+            {
+                if (pub.getName().Equals(pubName))
+                {
+                    inside = true;
+                    if (pub.hasTopic(topic))
+                    {
+                        Console.WriteLine("TOPICO DO LOCAL PUBAJUST---->" + max + "--->" + topic);
+                        if (max > pub.getSeqNumber(topic))
+                        {
+                            pub.setSeqNumber(topic, max);
+                        }
+                    }
+                    else
+                    {
+
+                        pub.addTopic(topic);
+                        pub.setSeqNumber(topic, max);
+                    }
+                }
+            }
+
+            if (!inside)
+            {
+                PubInfo pubInfo = new PubInfo(pubName);
+                pubInfo.addTopic(topic);
+                pubInfo.setSeqNumber(topic, max);
+                this.pubTopicSeq.Add(pubInfo);
             }
         }
 
@@ -813,6 +968,11 @@ namespace Broker
                            isForSent = true;
                            break;
                        }
+                       if ((i == niveis - 1) && pathSub[i].Equals(asterisco))
+                       {
+                           isForSent = true;
+                           break;
+                       }
                        else
                        {
                            isForSent = false;
@@ -821,6 +981,57 @@ namespace Broker
                    }
                }
 	        }
+            return isForSent;
+        }
+
+        private bool itsForSendInterest(KeyValuePair<string, string> kvp, string topic)
+        {
+
+            string PathSub = kvp.Key;
+            string url = kvp.Value;
+            string pathEvento = topic;
+
+            if (PathSub.Equals(pathEvento))
+            {
+                return true;
+            }
+
+            char[] delimiter = { '/' };
+            string asterisco = "*";
+            string[] pathSub = PathSub.Split(delimiter);
+            string[] path = pathEvento.Split(delimiter);
+
+            int niveis = pathSub.Count();
+            int i = 0;
+            bool isForSent = false;
+
+
+
+            while (i <= niveis - 1)
+            {
+
+                if (pathSub[i].Equals(path[i]))
+                {
+                    i++;
+                }
+                else
+                {
+                    if (!(pathSub[i].Equals(path[i])))
+                    {
+                        if ((i == niveis - 1) && pathSub[i].Equals(asterisco))
+                        {
+
+                            isForSent = true;
+                            break;
+                        }
+                        else
+                        {
+                            isForSent = false;
+                            break;
+                        }
+                    }
+                }
+            }
             return isForSent;
         }
 

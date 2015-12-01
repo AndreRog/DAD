@@ -24,8 +24,8 @@ namespace CommonTypes
         void receiveInterest(string topic, string name);
         void removeInterest(string topic, string myUrl);
         void sendToSubscriber(Event e);
-        void adjustEvents(string topic, int maxPerTopic);
-        int returnSeqTopic(string topic,string name);
+        void adjustEvents(string topic, int maxPerTopic, string pubName);
+        int returnSeqTopic(string topic,string name,string pubName);
     }
 
     public interface ISubscriber
@@ -142,7 +142,13 @@ namespace CommonTypes
             this.name = name;
         }
 
-
+        public void printMe()
+        {
+            foreach(KeyValuePair<string, int> oi in topicSeqNumber)
+            {
+                Console.WriteLine("KEY: --->" + oi.Key + "VALUE: ---->" + oi.Value );
+            }
+        }
         public void addTopic(string topic)
         {
             lock(this)
@@ -160,26 +166,79 @@ namespace CommonTypes
             }
         }
 
+        public Dictionary<string, int> getValues(){
+            return this.topicSeqNumber;
+        } 
+
         public bool hasTopic(string topic)
         {
-            if (topicSeqNumber.ContainsKey(topic))
+            Console.WriteLine("ENTREI HAS TOPIC COM ---->" + topic);
+            printMe();
+            string PathSub = topic;
+            char[] delimiter = { '/' };
+            string asterisco = "*";
+            string[] pathSub = PathSub.Split(delimiter);
+
+            int niveis = pathSub.Count();
+            int i = 0;
+            bool isForSent = false;
+            if (this.topicSeqNumber.ContainsKey(topic))
             {
                 return true;
             }
-            return false;
+            foreach(string auxTopic in this.topicSeqNumber.Keys)
+            {
+                i = 0;
+                string[] path = auxTopic.Split(delimiter);
+                while (i <= niveis - 1)
+                {
+                    if (pathSub[i].Equals(path[i]))
+                    {
+                        i++;
+                    }
+                    else
+                    {
+                        if (!(pathSub[i].Equals(path[i])))
+                        {
+                            if ((i == niveis - 1) && pathSub[i].Equals(asterisco))
+                            {
+
+                                isForSent = true;
+                                break;
+                            }
+                            //PODE DAR ERROS MAIS TARDe
+                            if ((i == niveis - 1) && path[i].Equals(asterisco))
+                            {
+                                isForSent = true;
+                                break;
+                            }
+                            else
+                            {
+                                isForSent = false;
+                                break;
+                            }
+                        }
+                }
+            }
+            }
+            return isForSent;
         }
+        
 
         public int getSeqNumber(string topic) 
         {
-         if (this.topicSeqNumber.ContainsKey(topic))
-            return this.topicSeqNumber[topic];
-         return -1;
+            Console.WriteLine("GETSEQNUMBER..----->" + topic);
+            if (this.topicSeqNumber.ContainsKey(topic))
+                return this.topicSeqNumber[topic];
+            return 0;
         }
 
         public void setSeqNumber(string topic, int max) 
-        { 
+        {
+            Console.WriteLine("SETSEQ-----------------" + topic + "----->" + max);
             if (this.topicSeqNumber.ContainsKey(topic))
             {
+                Console.WriteLine("SETSEQ->>>>>>>>>>>> IN");
                 this.topicSeqNumber[topic] = max;
             }
         }
@@ -194,18 +253,54 @@ namespace CommonTypes
             return this.name;
         }
 
+        public bool giveNumber(string topic, string topicAux)
+        {
+            string PathSub = topic;
+            string pathEvento = topicAux;
 
-        //public void setTopic(string topic)
-        //{
-        //    this.topic = topic;
-        //}
+            if (PathSub.Equals(pathEvento))
+            {
+                return true;
+            }
 
-        //public void setseqNumber(int seq)
-        //{
-        //    this.seqNumber = seq;
-        //}
+            char[] delimiter = { '/' };
+            string asterisco = "*";
+            string[] pathSub = PathSub.Split(delimiter);
+            string[] path = pathEvento.Split(delimiter);
+
+            int niveis = pathSub.Count();
+            int i = 0;
+            bool isForSent = false;
 
 
+
+            while (i <= niveis - 1)
+            {
+
+                if (pathSub[i].Equals(path[i]))
+                {
+                    i++;
+                }
+                else
+                {
+                    if (!(pathSub[i].Equals(path[i])))
+                    {
+                        if ((i == niveis - 1) && pathSub[i].Equals(asterisco))
+                        {
+
+                            isForSent = true;
+                            break;
+                        }
+                        else
+                        {
+                            isForSent = false;
+                            break;
+                        }
+                    }
+                }
+            }
+            return isForSent;
+        }
     }
 
     public class FrozenEvent

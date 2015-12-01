@@ -84,9 +84,9 @@ namespace Subscriber
                 this.broker.subscribe(topic, adress);
                 Console.WriteLine("Create Subscription on : " + topic);
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                Console.WriteLine("Something make bum bum");
+                Console.WriteLine("Something make bum bum" + e.Message);
             }
         }
 
@@ -103,9 +103,9 @@ namespace Subscriber
                 this.broker.unsubscribe(topic, adress);
                 Console.WriteLine("Create Unsubscription on : " + topic);
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                Console.WriteLine("Something make bum bum");
+                Console.WriteLine("Something make bum bum"+ e.Message);
             }
         }
 
