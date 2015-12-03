@@ -26,6 +26,10 @@ namespace CommonTypes
         void sendToSubscriber(Event e);
         void adjustEvents(string topic, int maxPerTopic, string pubName);
         int returnSeqTopic(string topic,string name,string pubName);
+        int getSeqNumber();
+        void sendToRoot(Event e);
+
+        void receiveFIFOChannel(Event e, int nextEvent);
     }
 
     public interface ISubscriber
@@ -73,7 +77,8 @@ namespace CommonTypes
         private string content;
         private string sender;
         private int number;
-
+        private int totalNumber;
+        private int adjustment;
         private string lastHop;
         
        // private int seq;
@@ -85,7 +90,23 @@ namespace CommonTypes
             this.sender = sender;
             this.number = number;
             this.lastHop = "null";
+            this.totalNumber = 0;
+            this.adjustment = 0;
         }
+
+        public int getAdjustment()
+        {
+            return this.adjustment;
+        }
+
+        public void setAdjustment(int i)
+        {
+            lock (this) { 
+            this.adjustment = i;
+
+            }
+        }
+
 
         public string getTopic()
         {
@@ -103,6 +124,16 @@ namespace CommonTypes
 
         public void setLastHop(string s){
             this.lastHop = s;
+        }
+
+        public int getTotalSeq()
+        {
+            return this.totalNumber;
+        }
+
+        public void setSeqNumber(int i)
+        {
+            this.totalNumber = i;
         }
 
         public string getSender()
@@ -149,6 +180,7 @@ namespace CommonTypes
                 Console.WriteLine("KEY: --->" + oi.Key + "VALUE: ---->" + oi.Value );
             }
         }
+
         public void addTopic(string topic)
         {
             lock(this)
@@ -172,7 +204,6 @@ namespace CommonTypes
 
         public bool hasTopic(string topic)
         {
-            Console.WriteLine("ENTREI HAS TOPIC COM ---->" + topic);
             printMe();
             string PathSub = topic;
             char[] delimiter = { '/' };
@@ -227,7 +258,6 @@ namespace CommonTypes
 
         public int getSeqNumber(string topic) 
         {
-            Console.WriteLine("GETSEQNUMBER..----->" + topic);
             if (this.topicSeqNumber.ContainsKey(topic))
                 return this.topicSeqNumber[topic];
             return 0;
@@ -235,10 +265,8 @@ namespace CommonTypes
 
         public void setSeqNumber(string topic, int max) 
         {
-            Console.WriteLine("SETSEQ-----------------" + topic + "----->" + max);
             if (this.topicSeqNumber.ContainsKey(topic))
             {
-                Console.WriteLine("SETSEQ->>>>>>>>>>>> IN");
                 this.topicSeqNumber[topic] = max;
             }
         }

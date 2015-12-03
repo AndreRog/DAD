@@ -126,7 +126,15 @@ namespace Subscriber
                 return;
             }
             this.eventsReceived.Add(new KeyValuePair<string, Event>(name, e));
-            Console.WriteLine("Evento Recebido de "+e.getSender()+" sobre " + e.getTopic()+" EventNumber : "+e.getNumber());
+            if(e.getTotalSeq() != 0)
+            {
+                Console.WriteLine("Evento Recebido de " + e.getSender() + " sobre " + e.getTopic() + " EventNumber : " + e.getTotalSeq());
+            }
+            else
+            {
+                Console.WriteLine("Evento Recebido de " + e.getSender() + " sobre " + e.getTopic() + " EventNumber : " + e.getNumber());
+            }
+
         }
 
         public void crash()
