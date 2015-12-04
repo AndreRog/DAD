@@ -203,6 +203,7 @@ namespace PuppetMaster
         private Dictionary<int, string> puppets;
         private Dictionary<string, string> brokers;
         private Dictionary<int, string> brokersSite;
+        private Dictionary<int, List<string>> brokersperSite;
         private Dictionary<string, int> brokerNameSite;
         private Dictionary<string, string> pubWithUrl;
         private Dictionary<string, int> pubWithSite;
@@ -217,6 +218,7 @@ namespace PuppetMaster
             this.single = single;
             brokers = new Dictionary<string, string>();
             brokersSite = new Dictionary<int, string>();
+            
             brokerNameSite = new Dictionary<string, int>();
             pubWithUrl = new Dictionary<string, string>();
             pubWithSite = new Dictionary<string, int>();
@@ -224,6 +226,7 @@ namespace PuppetMaster
             subsWithSite = new Dictionary<string, int>();
             puppets = new Dictionary<int, string>();
             sites = new Dictionary<string, string>();
+            brokersperSite = new Dictionary<int,List<string>>(); 
             policy = "flooding";
             order = "FIFO";
             logLvl = "light";
@@ -294,7 +297,8 @@ namespace PuppetMaster
                 Process.Start(filename, arguments);
 
 
-                //addReplicas(name, site, URL, URL, policy, order, logLvl);
+                addReplicas(name, site, URL, URL, policy, order, logLvl);
+                Thread.Sleep(1000);
             }
             else
             {
@@ -302,7 +306,23 @@ namespace PuppetMaster
                 IPuppetMaster puppetM = (IPuppetMaster)Activator.GetObject(
                     typeof(IPuppetMaster),
                     puppets[siteB]);
+                try { 
                 puppetM.addBroker(name, site, URL, URLParent);
+                    }
+                catch (Exception e)
+                {
+                    string x = e.Message;
+                }
+            }
+
+            if(this.brokersperSite.ContainsKey(siteB)){
+                this.brokersperSite[siteB].Add(URL);
+            }
+            else
+            {
+                List<string> newList = new List<string>();
+                this.brokersperSite.Add(siteB, newList);
+                this.brokersperSite[siteB].Add(URL);
             }
             this.brokers.Add(name, URL);
             this.brokersSite.Add(siteB, URL);
@@ -311,21 +331,49 @@ namespace PuppetMaster
 
         public void addReplicas(string name, string site, string myUrl, string leaderURL, string policy, string order, string loglvl)
         {
-
+            int siteB = convertStoI(site);
             char[] delimiter = { ':', '/' };
             string[] splitURL = myUrl.Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
             int newPort = Int32.Parse(splitURL[2]) + 1000;
             string newUrl = "tcp://" + splitURL[1] + ":" + newPort + "/broker";
 
-            String arguments = name + " " + site + " " + newUrl + " " + leaderURL + " " + policy + " " + order + " " + logLvl + " " + "REPLICA";
+            String arguments = name +"1" + " " + site + " " + newUrl + " " + leaderURL + " " + policy + " " + order + " " + logLvl + " " + "REPLICA";
             String filename = @"..\..\..\Broker\bin\Debug\Broker.exe";
             Process.Start(filename, arguments);
 
+            this.brokers.Add(name + "1", newUrl);
+            this.brokerNameSite.Add(name + "1", siteB);
+
+            if (this.brokersperSite.ContainsKey(siteB))
+            {
+                this.brokersperSite[siteB].Add(newUrl);
+            }
+            else
+            {
+                List<string> newList = new List<string>();
+                this.brokersperSite.Add(siteB, newList);
+                this.brokersperSite[siteB].Add(newUrl);
+            }
+
             newPort = newPort + 100;
             newUrl = "tcp://" + splitURL[1] + ":" + newPort + "/broker";
-            arguments = name + " " + site + " " + newUrl + " " + leaderURL + " " + policy + " " + order + " " + logLvl + " " + "REPLICA";
+            arguments = name+"2" + " " + site + " " + newUrl + " " + leaderURL + " " + policy + " " + order + " " + logLvl + " " + "REPLICA";
             filename = @"..\..\..\Broker\bin\Debug\Broker.exe";
             Process.Start(filename, arguments);
+
+            this.brokers.Add(name + "2", newUrl);
+            this.brokerNameSite.Add(name + "2", siteB);
+
+            if (this.brokersperSite.ContainsKey(siteB))
+            {
+                this.brokersperSite[siteB].Add(newUrl);
+            }
+            else
+            {
+                List<string> newList = new List<string>();
+                this.brokersperSite.Add(siteB, newList);
+                this.brokersperSite[siteB].Add(newUrl);
+            }
         }
 
 
@@ -339,10 +387,17 @@ namespace PuppetMaster
         {
             int siteB = convertStoI(site);
             string urlbroker = this.brokersSite[siteB];
+            Dictionary<int, string> aux = new Dictionary<int, string>();
+            int i = 0;
+            foreach(string replicas in this.brokersperSite[siteB]) 
+            {
+                aux.Add(i, replicas);
+                i++;
+            }
             if (this.single || this.site == siteB)
             {
 
-                String arguments = name + " " + site + " " + url + " " + urlbroker;
+                String arguments = name + " " + site + " " + url + " " + aux[0] + " " + aux[1] + " " + aux[2];
                 String filename = @"..\..\..\Subscriber\bin\Debug\Subscriber.exe";
                 Process.Start(filename, arguments);
             }
@@ -363,10 +418,17 @@ namespace PuppetMaster
 
             int siteB = convertStoI(site);
             string urlbroker = this.brokersSite[siteB];
+            Dictionary<int, string> aux = new Dictionary<int, string>();
+            int i = 0;
+            foreach (string replicas in this.brokersperSite[siteB])
+            {
+                aux.Add(i, replicas);
+                i++;
+            }
             if (this.single || this.site == siteB)
             {
 
-                String arguments = name + " " + site + " " + url + " " + urlbroker;
+                String arguments = name + " " + site + " " + url + " " + aux[0] + " " + aux[1] + " " + aux[2];
                 String filename = @"..\..\..\Publisher\bin\Debug\Publisher.exe";
                 Process.Start(filename, arguments);
             }
@@ -386,6 +448,9 @@ namespace PuppetMaster
         public void addPublisherRemote(string name, string site, string url, string brokerurl)
         {
 
+            int siteB = convertStoI(site);
+            this.pubWithUrl.Add(name, url);
+            this.pubWithSite.Add(name, siteB);
             String arguments = name + " " + site + " " + url + " " + brokerurl;
             String filename = @"..\..\..\Publisher\bin\Debug\Publisher.exe";
             Process.Start(filename, arguments);
@@ -396,7 +461,9 @@ namespace PuppetMaster
 
         public void addSubscriberRemote(string name, string site, string url, string brokerurl)
         {
-
+            int siteB = convertStoI(site);
+            this.subsWithUrl.Add(name, url);
+            this.subsWithSite.Add(name, siteB);
             String arguments = name + " " + site + " " + url + " " + brokerurl;
             String filename = @"..\..\..\Subscriber\bin\Debug\Subscriber.exe";
             Process.Start(filename, arguments);
@@ -655,16 +722,46 @@ namespace PuppetMaster
         public void changePolicy(string p)
         {
             policy = p;
+            if (master && !single)
+            {
+                foreach (string url in this.puppets.Values)
+                {
+                    IPuppetMaster puppetM = (IPuppetMaster)Activator.GetObject(
+                     typeof(IPuppetMaster),
+                         url);
+                    puppetM.changePolicy(p);
+                }
+            }
         }
 
-        internal void changeOrdering(string p)
+        public void changeOrdering(string p)
         {
             order = p;
+            if (master && !single)
+            {
+                foreach (string url in this.puppets.Values)
+                {
+                    IPuppetMaster puppetM = (IPuppetMaster)Activator.GetObject(
+                     typeof(IPuppetMaster),
+                         url);
+                    puppetM.changeOrdering(p);
+                }
+            }
         }
 
-        internal void changeLogLvl(string p)
+        public void changeLogLvl(string p)
         {
             logLvl = p;
+            if (master && !single)
+            {
+                foreach (string url in this.puppets.Values)
+                {
+                    IPuppetMaster puppetM = (IPuppetMaster)Activator.GetObject(
+                     typeof(IPuppetMaster),
+                         url);
+                    puppetM.changeLogLvl(p);
+                }
+            }
         }
     }
 }

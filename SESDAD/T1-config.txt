@@ -1,15 +1,21 @@
-RoutingPolicy flooding
-Ordering NO
-LoggingLevel full
+RoutingPolicy filtering
+Ordering FIFO
+LoggingLevel light
 Site site0 Parent none
 Site site1 Parent site0
+Site site2 Parent site1
 Process broker0 is broker On site0 URL tcp://localhost:3333/broker
 Process publisher0 is publisher On site0 URL tcp://localhost:3334/pub
 Process broker1 is broker On site1 URL tcp://localhost:3335/broker
 Process subscriber1 is subscriber On site1 URL tcp://localhost:3336/sub
+Process broker2 is broker On site2 URL tcp://localhost:3337/broker
+Process publisher2 is publisher On site2 URL tcp://localhost:3338/pub
+Process subscriber2 is subscriber On site2 URL tcp://localhost:3339/sub
 Wait 3000
 Subscriber subscriber1 Subscribe /testtopic
-Publisher publisher0 Publish 12 Ontopic /testtopic Interval 5000
+Subscriber subscriber2 Subscribe /testtopic1
+Publisher publisher0 Publish 120 Ontopic /testtopic1 Interval 25
+Publisher publisher2 Publish 120 Ontopic /testtopic Interval 25
 Wait 30000
 Subscriber subscriber1 Unsubscribe /testtopic
 Wait 3000

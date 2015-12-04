@@ -29,7 +29,14 @@ namespace Subscriber
                         typeof(IBroker),
                     args[3]);
 
-            Subscriber subscriber = new Subscriber(args[0],args[2], args[3],broker);
+            Subscriber subscriber = new Subscriber(args[0],args[2]);
+            int i = 3;
+            while(i < args.Length )
+            { 
+                subscriber.addBroker(args[i]);
+                i++;
+            }
+
             RemotingServices.Marshal(subscriber, "sub", typeof(Subscriber));
 
 
@@ -47,23 +54,51 @@ namespace Subscriber
 
         private string adress;
 
-        private string brokerUrl;
+        private Dictionary<string,bool> brokerUrl;
 
-        private IBroker broker;
+        private string leaderURL;
 
         private List<KeyValuePair<string, Event>> eventsReceived;
+
         private bool isFrozen = false;
+
         private List<FrozenEvent> frozenEvents;
+
         //private Dictionary<string, Event> eventsReceived;
 
-        public Subscriber(string name, string url, string brokerUrl, IBroker broker)
+        public Subscriber(string name, string url)
         {
             this.name = name;
             this.adress = url;
-            this.brokerUrl = brokerUrl;
-            this.broker = broker;
+            this.brokerUrl = new Dictionary<string,bool>();
+            this.leaderURL = "null";
             this.eventsReceived = new List<KeyValuePair<string, Event>>();
             this.frozenEvents = new List<FrozenEvent>();
+        }
+
+        public void addBroker(string url)
+        {
+            if (this.leaderURL.Equals("null"))
+            {
+                this.leaderURL = url;
+            }
+            else 
+            { 
+                char[] delimiter = { ':', '/' };
+                string[] arg = url.Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
+                int newPort = Int32.Parse(arg[2]);
+                foreach(string brokerS in this.brokerUrl.Keys)
+                {
+                    string[] b = brokerS.Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
+                    int oldPort = Int32.Parse(b[2]);
+                    if (newPort < oldPort)
+                    {
+                        this.leaderURL = url;
+                    }
+                }
+            }
+            this.brokerUrl.Add(url, true);
+            Console.WriteLine("Leader--->" + this.leaderURL);
         }
 
         public string getName()
@@ -81,12 +116,16 @@ namespace Subscriber
             }
             try
             {
-                this.broker.subscribe(topic, adress);
+                IBroker broker = (IBroker)Activator.GetObject(
+                        typeof(IBroker),
+                        this.leaderURL);
+
+                broker.subscribe(topic, adress);
                 Console.WriteLine("Create Subscription on : " + topic);
             }
-            catch (Exception e)
+            catch(Exception e)
             {
-                Console.WriteLine("Something make bum bum" + e.Message);
+                Console.WriteLine("BUM BUM CLAP:" + e.Message);
             }
         }
 
@@ -100,7 +139,11 @@ namespace Subscriber
             }
             try
             {
-                this.broker.unsubscribe(topic, adress);
+                IBroker broker = (IBroker)Activator.GetObject(
+                     typeof(IBroker),
+                     this.leaderURL);
+
+                broker.unsubscribe(topic, adress);
                 Console.WriteLine("Create Unsubscription on : " + topic);
             }
             catch (Exception e)

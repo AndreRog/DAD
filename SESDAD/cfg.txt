@@ -1,2 +1,2 @@
-tcp://localhost:10000/PM
-tcp://localhost:10001/PM
+tcp://172.20.29.154:10000/PM
+tcp://194.210.223.38:10001/PM

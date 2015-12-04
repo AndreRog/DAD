@@ -68,6 +68,12 @@ namespace CommonTypes
         void publish(string processName, string numberEvents, string topicName, string interval);
         void unsubscribe(string processName, string topicName);
         void crash(string processName);
+
+        void changePolicy(string p);
+
+        void changeLogLvl(string p);
+
+        void changeOrdering(string p);
     }
 
     [Serializable]

@@ -29,7 +29,13 @@ namespace Publisher
                         typeof(IBroker),
                     args[3]);
 
-            Publisher publisher = new Publisher(args[0],args[2], args[3], broker);
+            Publisher publisher = new Publisher(args[0],args[2]);
+            int i = 3;
+            while(i < args.Length )
+            { 
+                publisher.addBroker(args[i]);
+                i++;
+            }
             RemotingServices.Marshal(publisher, "pub", typeof(Publisher));
 
 
@@ -46,11 +52,10 @@ namespace Publisher
 
         private string adress;
 
-        private string brokerUrl;
-
-        private IBroker broker;
+        private Dictionary<string, bool> brokerUrl;
 
         private List<KeyValuePair<string, Event>> events;
+
         private Dictionary<string, int> pubSeq;
 
         private int seqNumber ;
@@ -59,21 +64,48 @@ namespace Publisher
 
         private List<FrozenEvent> frozenEvents;
 
+        private string leaderURL;
+
       //  private Dictionary<string, Event> events; 
 
-        public Publisher(string name, string url, string brokerUrl, IBroker broker)
+        public Publisher(string name, string url)
         {
             this.name = name;
             this.adress = url;
-            this.brokerUrl = brokerUrl;
-            this.broker = broker;
+            this.brokerUrl = new Dictionary<string, bool>();
+            this.leaderURL = "null";
             this.events = new List<KeyValuePair<string, Event>>();
             this.pubSeq = new Dictionary<string,int>();
             this.frozenEvents = new List<FrozenEvent>();
             this.seqNumber = 0;
         }
 
-        //Antes de reestruturação
+        public void addBroker(string url)
+        {
+            if (this.leaderURL.Equals("null"))
+            {
+                this.leaderURL = url;
+            }
+            else
+            {
+                char[] delimiter = { ':', '/' };
+                string[] arg = url.Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
+                int newPort = Int32.Parse(arg[2]);
+                foreach (string brokerS in this.brokerUrl.Keys)
+                {
+                    string[] b = brokerS.Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
+                    int oldPort = Int32.Parse(b[2]);
+                    if (newPort < oldPort)
+                    {
+                        this.leaderURL = url;
+                    }
+                }
+            }
+            this.brokerUrl.Add(url, true);
+            Console.WriteLine("Leader--->" + this.leaderURL);
+        }
+
+
         public int SeqNumber()
         {
             return Interlocked.Increment(ref seqNumber);
@@ -95,17 +127,12 @@ namespace Publisher
             int i = 0;
             int eventNumber;
 
-            Console.WriteLine(this.brokerUrl);
             if (!this.pubSeq.ContainsKey(topic))
             {
                 this.pubSeq.Add(topic, 0);
             }
             for (i = 0; i < times; i++)
             {
-                //this.pubSeq[topic] += 1;
-                //eventNumber = this.pubSeq[topic];
-
-
                 if (isFrozen)
                 {
                     i--;
@@ -115,7 +142,10 @@ namespace Publisher
                     eventNumber = SeqNumber();
                     e = new Event(topic, "", this.name, eventNumber);
                     Console.WriteLine("Creating Event : " + topic + "EventNumber:" + e.getNumber());
-                    this.broker.receivePub(this.name, e);
+                    IBroker broker = (IBroker)Activator.GetObject(
+                       typeof(IBroker),
+                       this.leaderURL);
+                    broker.receivePub(this.name, e);
                     events.Add(new KeyValuePair<string, Event>(name, e));
 
                     Thread.Sleep(sleep);
@@ -146,17 +176,7 @@ namespace Publisher
         public void unfreeze()
         {
             isFrozen = false;
-            //checkFrozenEvents();
         }
-
-        //public void checkFrozenEvents()
-        //{
-        //    foreach (FrozenEvent fe in frozenEvents)
-        //    {
-        //        this.broker.receivePub(this.name,fe.getEvent());                  
-        //    }
-        //    frozenEvents = new List<FrozenEvent>();
-        //}
 
     }
 }

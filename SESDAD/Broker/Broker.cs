@@ -21,9 +21,10 @@ namespace Broker
 
             char[] delimiter = { ':', '/' };
             string[] arg = args[2].Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
-            Console.WriteLine("Broker Application " + arg[2]);
-            Console.WriteLine("Broker Application URL:" + args[3]);
+            Console.WriteLine("Broker Application " + " " + args[0] + " "+ arg[2]);
             Console.WriteLine("Broker Application URL:" + args[2]);
+            Console.WriteLine("Broker Application Parent URL:" + args[3]);
+
 
 
             TcpChannel brokerChannel = new TcpChannel(Int32.Parse(arg[2]));
@@ -199,6 +200,16 @@ namespace Broker
                 frozenEvents.Enqueue(fe);
                 return;
             }
+            foreach(KeyValuePair<string,bool> rep in  replicas)
+            {
+                if(rep.Value && isLeader)
+                {
+                    IBroker brokerS = (IBroker)Activator.GetObject(
+                    typeof(IBroker),
+                            rep.Key);
+                    brokerS.addChild(name, URL);
+                }
+            }
             this.childs.Add(name, URL);
             this.fifoArray.Add(URL, 0);
             Console.WriteLine("Child Added:" + name);
@@ -212,6 +223,16 @@ namespace Broker
                 frozenEvents.Enqueue(fe);
                 return;
             }
+            foreach (KeyValuePair<string, bool> rep in replicas)
+            {
+                if (rep.Value && isLeader)
+                {
+                    IBroker brokerS = (IBroker)Activator.GetObject(
+                    typeof(IBroker),
+                            rep.Key);
+                    brokerS.addPublisher(name, URL);
+                }
+            }
             this.pubs.Add(name, URL);
             Console.WriteLine("Pub Added:" + name);
         }
@@ -223,6 +244,16 @@ namespace Broker
                 FrozenEvent fe = new FrozenEvent("NEW SUBSCRIPTOR",name,URL);
                 frozenEvents.Enqueue(fe);
                 return;
+            }
+            foreach (KeyValuePair<string, bool> rep in replicas)
+            {
+                if (rep.Value && isLeader)
+                {
+                    IBroker brokerS = (IBroker)Activator.GetObject(
+                    typeof(IBroker),
+                            rep.Key);
+                    brokerS.addSubscriber(name, URL);
+                }
             }
             this.subs.Add(name, URL);
             Console.WriteLine("Subscriber Added:" + name);
@@ -1031,10 +1062,7 @@ namespace Broker
             lock (this)
             {
                 KeyValuePair<string, string> kvp;
-               // int max = 0;
                 kvp = new KeyValuePair<string, string>(topic, url);
-                //if (!this.adjustTotal.ContainsKey(topic))
-                //    adjustTotal.Add(topic, 0);
                 if (!filteringInterest.Contains(kvp))
                 {
                     filteringInterest.Add(kvp);
