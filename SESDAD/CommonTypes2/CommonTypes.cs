@@ -14,6 +14,7 @@ namespace CommonTypes
         void addChild(string name,string url);
         void addPublisher(string name, string url);
         void addSubscriber(string name, string url);
+        void addReplica(string url, bool alive);
         string receivePub(string name, Event e);
         string subscribe(string topic, string URL);
         string unsubscribe(string topic, string URL);
@@ -24,12 +25,12 @@ namespace CommonTypes
         void receiveInterest(string topic, string name);
         void removeInterest(string topic, string myUrl);
         void sendToSubscriber(Event e);
-        void adjustEvents(string topic, int maxPerTopic, string pubName);
-        int returnSeqTopic(string topic,string name,string pubName);
         int getSeqNumber();
         void sendToRoot(Event e);
 
         void receiveFIFOChannel(Event e, int nextEvent);
+
+        void newReplica(string url, bool p);
     }
 
     public interface ISubscriber
@@ -145,6 +146,11 @@ namespace CommonTypes
         {
             return number;
         }
+
+        public void setNumber(int i)
+        {
+            this.number = i;
+        }
     }
 
 
@@ -155,17 +161,17 @@ namespace CommonTypes
 
         private string url;
 
-        private Dictionary<string, int> topicSeqNumber;
+        private Dictionary<string, int> pubSeqNumber;
 
         //private string topic;
 
-        //private int seqNumber;
+        private int seqNumber;
 
         public PubInfo(string name) {
             this.name = name;
-            this.topicSeqNumber = new Dictionary<string, int>();
+            this.pubSeqNumber = new Dictionary<string, int>();
             //this.topic = topic;
-            //this.seqNumber = seq;
+            this.seqNumber = 0;
         }
 
         public void setName(string name)
@@ -175,31 +181,50 @@ namespace CommonTypes
 
         public void printMe()
         {
-            foreach(KeyValuePair<string, int> oi in topicSeqNumber)
+            foreach(KeyValuePair<string, int> oi in pubSeqNumber)
             {
                 Console.WriteLine("KEY: --->" + oi.Key + "VALUE: ---->" + oi.Value );
             }
         }
 
-        public void addTopic(string topic)
+        public void addURL(string url)
         {
-            lock(this)
+            lock (this)
             {
-                if (topicSeqNumber.Count > 0) 
-                { 
-                     if (!topicSeqNumber.ContainsKey(topic)) { 
-                        this.topicSeqNumber.Add(topic, 0);
-                     }
+                if (pubSeqNumber.Count > 0)
+                {
+                    if (!pubSeqNumber.ContainsKey(url))
+                    {
+                        this.pubSeqNumber.Add(url, 0);
+                    }
                 }
                 else
                 {
-                    this.topicSeqNumber.Add(topic, 0);
+                    this.pubSeqNumber.Add(url, 0);
+                }
+            }
+        }
+
+        public void addTopic(string topic)
+        {
+            lock (this)
+            {
+                if (pubSeqNumber.Count > 0)
+                {
+                    if (!pubSeqNumber.ContainsKey(topic))
+                    {
+                        this.pubSeqNumber.Add(topic, 0);
+                    }
+                }
+                else
+                {
+                    this.pubSeqNumber.Add(topic, 0);
                 }
             }
         }
 
         public Dictionary<string, int> getValues(){
-            return this.topicSeqNumber;
+            return this.pubSeqNumber;
         } 
 
         public bool hasTopic(string topic)
@@ -213,11 +238,11 @@ namespace CommonTypes
             int niveis = pathSub.Count();
             int i = 0;
             bool isForSent = false;
-            if (this.topicSeqNumber.ContainsKey(topic))
+            if (this.pubSeqNumber.ContainsKey(topic))
             {
                 return true;
             }
-            foreach(string auxTopic in this.topicSeqNumber.Keys)
+            foreach(string auxTopic in this.pubSeqNumber.Keys)
             {
                 i = 0;
                 string[] path = auxTopic.Split(delimiter);
@@ -254,26 +279,55 @@ namespace CommonTypes
             }
             return isForSent;
         }
-        
 
-        public int getSeqNumber(string topic) 
+        public int getFIFOSeq()
         {
-            if (this.topicSeqNumber.ContainsKey(topic))
-                return this.topicSeqNumber[topic];
+            return this.seqNumber;
+        }
+
+        public void addFIFOSeq() 
+        { 
+            this.seqNumber +=1;
+        }
+
+        public int getAdjusment(string url)
+        {
+            if (this.pubSeqNumber.ContainsKey(url))
+                return this.pubSeqNumber[url];
             return 0;
         }
 
-        public void setSeqNumber(string topic, int max) 
+        public void setAdjustment(string url, int max)
         {
-            if (this.topicSeqNumber.ContainsKey(topic))
+            if (this.pubSeqNumber.ContainsKey(url))
             {
-                this.topicSeqNumber[topic] = max;
+                this.pubSeqNumber[url] = max;
+            }
+        }
+
+        public void addAdjustment(string url)
+        {
+            this.pubSeqNumber[url] += 1;
+        }
+
+        public int getSeqNumber(string topic)
+        {
+            if (this.pubSeqNumber.ContainsKey(topic))
+                return this.pubSeqNumber[topic];
+            return 0;
+        }
+
+        public void setSeqNumber(string topic, int max)
+        {
+            if (this.pubSeqNumber.ContainsKey(topic))
+            {
+                this.pubSeqNumber[topic] = max;
             }
         }
 
         public void addSeqNumber(string topic)
         {
-            this.topicSeqNumber[topic] += 1;
+            this.pubSeqNumber[topic] += 1;
         }
 
         public string getName()

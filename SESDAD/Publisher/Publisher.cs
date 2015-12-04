@@ -53,7 +53,7 @@ namespace Publisher
         private List<KeyValuePair<string, Event>> events;
         private Dictionary<string, int> pubSeq;
 
-   //     private static int seqNumber = 0;
+        private int seqNumber ;
 
         private bool isFrozen = false;
 
@@ -70,14 +70,15 @@ namespace Publisher
             this.events = new List<KeyValuePair<string, Event>>();
             this.pubSeq = new Dictionary<string,int>();
             this.frozenEvents = new List<FrozenEvent>();
+            this.seqNumber = 0;
         }
 
         //Antes de reestruturação
-        //public int SeqNumber()
-        //{
-        //    return Interlocked.Increment(ref seqNumber);
+        public int SeqNumber()
+        {
+            return Interlocked.Increment(ref seqNumber);
 
-        //}
+        }
 
         public void pubEvent(string numberEvents, string topic, string interval)
         {
@@ -101,23 +102,22 @@ namespace Publisher
             }
             for (i = 0; i < times; i++)
             {
-                this.pubSeq[topic] += 1;
-                eventNumber = this.pubSeq[topic];
+                //this.pubSeq[topic] += 1;
+                //eventNumber = this.pubSeq[topic];
 
-                e = new Event(topic, "",this.name, eventNumber);
 
                 if (isFrozen)
                 {
-                    FrozenEvent fe = new FrozenEvent("EVENT", e);
-                    frozenEvents.Add(fe);
-                    Thread.Sleep(sleep);
+                    i--;
                 }
                 else
                 {
-
+                    eventNumber = SeqNumber();
+                    e = new Event(topic, "", this.name, eventNumber);
+                    Console.WriteLine("Creating Event : " + topic + "EventNumber:" + e.getNumber());
                     this.broker.receivePub(this.name, e);
                     events.Add(new KeyValuePair<string, Event>(name, e));
-                    Console.WriteLine("Creating Event : " + topic + "EventNumber:" +  e.getNumber());
+
                     Thread.Sleep(sleep);
                 }
             }
@@ -131,17 +131,11 @@ namespace Publisher
 
         public void status()
         {
-            int i = 0;
             Console.WriteLine("Making Status");
             Console.WriteLine("Name : " + name);
             Console.WriteLine("Address : " + adress);
             Console.WriteLine("BrokerURL : " + brokerUrl);
-            Console.WriteLine("Eventos publicados");
-            foreach (KeyValuePair<string, Event> e in events)
-            {
-                i++;
-                Console.WriteLine("Evento nº " + i + "Topic : " + e.Key + " Content : " + e.Value.getContent());
-            }
+            Console.WriteLine("Eventos publicados " + this.seqNumber);
         }
 
         public void freeze()
@@ -152,17 +146,17 @@ namespace Publisher
         public void unfreeze()
         {
             isFrozen = false;
-            checkFrozenEvents();
+            //checkFrozenEvents();
         }
 
-        public void checkFrozenEvents()
-        {
-            foreach (FrozenEvent fe in frozenEvents)
-            {
-                this.broker.receivePub(this.name,fe.getEvent());                  
-            }
-            frozenEvents = new List<FrozenEvent>();
-        }
+        //public void checkFrozenEvents()
+        //{
+        //    foreach (FrozenEvent fe in frozenEvents)
+        //    {
+        //        this.broker.receivePub(this.name,fe.getEvent());                  
+        //    }
+        //    frozenEvents = new List<FrozenEvent>();
+        //}
 
     }
 }

@@ -31,7 +31,8 @@ namespace Broker
 
             Broker broker = new Broker(args[0], args[3], args[2], args[4], args[5], args[6]);
             RemotingServices.Marshal(broker, "broker", typeof(Broker));
-            if (!args[3].Equals("null"))
+            
+            if (!args[3].Equals("null") && !args[7].Equals("REPLICA"))
             {
 
                 IBroker parent = (IBroker)Activator.GetObject(
@@ -39,7 +40,19 @@ namespace Broker
                     args[3]);
 
                 parent.addChild(args[0], args[2]);
+
             }
+            if (args[7].Equals("REPLICA"))
+            {
+                IBroker parent = (IBroker)Activator.GetObject(
+                  typeof(IBroker),
+                    args[3]);
+                parent.addReplica(args[2], true);
+                broker.newReplica(args[3], true);
+            }
+            else
+                broker.setLeader(true);
+
 
             Console.ReadLine();
         }
@@ -56,19 +69,20 @@ namespace Broker
         private string typeRouting;
         private bool lightLog;
         private string myUrl;
+        private bool isLeader;
         private bool isFrozen = false;
         private Dictionary<string, string> childs;
+        private Dictionary<string, bool> replicas;
         private Dictionary<string, string> pubs;
         private Dictionary<string, string> subs;
 
         //Auxiliar list for FIFO,FILTER,etc implementation
         private List<KeyValuePair<string, Event>> events;
         private List<Event> queueEvents;
-        private List<Event> queueFilterTotal;
         private List<KeyValuePair<string,string>> topicSubs;
         private List<KeyValuePair<string, string>> filteringInterest;
         private List<PubInfo> pubTopicSeq;
-        private List<FrozenEvent> frozenEvents;
+        private Queue<FrozenEvent> frozenEvents;
         private List<PubInfo> maxPerTopic;
         
         //Variable for totalOrder
@@ -77,7 +91,8 @@ namespace Broker
         private int nextEvent;
         private Dictionary<string, int> fifoArray;
         private Dictionary<int, Event> totalQueue;
-      
+        private Queue<FrozenEvent> frozenQueue; 
+
         public Broker(string name, string parent,string myUrl,string policy, string order, string logLvl) {
             this.parentURL = parent;
             this.name = name;
@@ -93,6 +108,10 @@ namespace Broker
             this.myUrl = myUrl;
             this.seqNumber = 0;
             this.nextEvent = 0;
+            this.isLeader = false;
+            this.replicas = new Dictionary<string,bool>();
+
+            this.frozenQueue = new Queue<FrozenEvent>();
 
             this.adjustTotal = new Dictionary<string, int>();
 
@@ -100,11 +119,57 @@ namespace Broker
             this.topicSubs = new List<KeyValuePair<string, string>>();
             this.events = new List<KeyValuePair<string, Event>>();
             this.queueEvents = new List<Event>();
-            this.frozenEvents = new List<FrozenEvent>();
+            this.frozenEvents = new Queue<FrozenEvent>();
             this.pubTopicSeq = new List<PubInfo>();
             this.maxPerTopic = new List<PubInfo>();
             this.fifoArray = new Dictionary<string, int>(2);
             this.totalQueue =  new Dictionary<int,Event>();
+        }
+
+        public void setLeader(bool leader)
+        {
+            if (leader)
+                Console.WriteLine("I am the Leader");
+            else
+                Console.WriteLine("I am the replica");
+
+            this.isLeader = leader;
+        }
+
+        public bool getLeader()
+        {
+            return this.isLeader;
+        }
+
+        public void addReplica(string url, bool alive)
+        {
+            if(!this.replicas.ContainsKey(url))
+            {
+                this.replicas.Add(url, alive);
+            }
+            foreach(KeyValuePair<string,bool> brokers in this.replicas)
+            {
+                if(!(brokers.Key.Equals(url)))
+                {
+                        IBroker brokerS = (IBroker)Activator.GetObject(
+                            typeof(IBroker),
+                            brokers.Key);
+                        brokerS.newReplica(url, true);
+                }
+            }
+        }
+
+        public void newReplica(string url,bool alive)
+        {
+             if(!this.replicas.ContainsKey(url))
+            {
+                this.replicas.Add(url, alive);
+
+                IBroker brokerS = (IBroker)Activator.GetObject(
+                    typeof(IBroker),
+                       url);
+                brokerS.newReplica(this.myUrl, true);
+            }
         }
 
         public int SeqNumber()
@@ -125,7 +190,7 @@ namespace Broker
             if (isFrozen)
             {
                 FrozenEvent fe = new FrozenEvent("NEW CHILD", name, URL);
-                frozenEvents.Add(fe);
+                frozenEvents.Enqueue(fe);
                 return;
             }
             this.childs.Add(name, URL);
@@ -138,13 +203,10 @@ namespace Broker
             if (isFrozen)
             {
                 FrozenEvent fe = new FrozenEvent("NEW PUBLISHER", name, URL);
-                frozenEvents.Add(fe);
+                frozenEvents.Enqueue(fe);
                 return;
             }
             this.pubs.Add(name, URL);
-            lock (this) { 
-                this.pubTopicSeq.Add(new PubInfo(name));
-            }
             Console.WriteLine("Pub Added:" + name);
         }
 
@@ -153,7 +215,7 @@ namespace Broker
             if (isFrozen)
             {
                 FrozenEvent fe = new FrozenEvent("NEW SUBSCRIPTOR",name,URL);
-                frozenEvents.Add(fe);
+                frozenEvents.Enqueue(fe);
                 return;
             }
             this.subs.Add(name, URL);
@@ -164,18 +226,22 @@ namespace Broker
         {
             //For freeze implementation
             if (isFrozen)
-            {
+            { 
+                int i = e.getNumber() - e.getAdjustment();
+                Console.WriteLine("FROZEN EVENT ---->" + i);
                 FrozenEvent fe = new FrozenEvent("EVENT",e);
-                frozenEvents.Add(fe);
+                frozenEvents.Enqueue(fe);
                 return "ACK";
             }
-
+            else { 
+            int i = e.getNumber() - e.getAdjustment();
+            e.setNumber(i);
             Console.WriteLine("Received Publish " + "Name: " + name + "eventTopic: " + e.getTopic() + " " + e.getNumber());
             if (!(name.StartsWith("broker")))
             {
                 sendToPM("PubEvent " + name + " , " + e.getSender() + " , " + e.getTopic() + " , " + e.getNumber());
             }
-
+            
             //For adjustment of events in filterings
             if(this.typeRouting.Equals("filtering") && !(this.typeOrder.Equals("TOTAL")))
             {
@@ -200,10 +266,9 @@ namespace Broker
                propagate(e);
                sentToSub(name, e);
             }
-
+            }
             return "ACK";
         }
-
 
         //FILTERING TOTAL
         public void sendToRoot(Event e)
@@ -218,14 +283,12 @@ namespace Broker
                 IBroker parent = (IBroker)Activator.GetObject(
                         typeof(IBroker),
                         this.parentURL);
-                Console.WriteLine("GetSeq from Parent: " + parentURL);
                 parent.sendToRoot(e);
             }
         }
 
         private void totalpropagate(Event e)
         {
-            Console.WriteLine("ENTREI");
             lock(this)
             {
                 int i;
@@ -235,15 +298,14 @@ namespace Broker
                     {
                         if (itsForSendInterest(kvp, e.getTopic()))
                         { 
+
                             this.fifoArray[kvp.Value] = this.fifoArray[kvp.Value] + 1;
+                            sendToPM("BroEvent " + name + " , " + e.getSender() + " , " + e.getTopic() + " , " + this.fifoArray[kvp.Value]);
                             i = this.fifoArray[kvp.Value];
-                            Console.WriteLine("Propagar para o filho--->" + kvp.Value + " Vai com o evento i---->" + this.fifoArray[kvp.Value] + "TOPIC ---->" +e.getTopic());
                             IBroker child = (IBroker)Activator.GetObject(
                                  typeof(IBroker),
                                  kvp.Value);
                             child.receiveFIFOChannel(e, i);
-                            //Thread thread = new Thread(() => this.sendToChild(kvp.Value, i, e));
-                            //thread.Start();
                         }
                     }
                 }
@@ -252,23 +314,12 @@ namespace Broker
             }
         }
 
-        public void sendToChild(string url, int i,Event e)
-        {
-            IBroker child = (IBroker)Activator.GetObject(
-                       typeof(IBroker),
-                       url);
-            Console.WriteLine("VOU ENVIAR COM I = --->" + i);
-            child.receiveFIFOChannel(e, i);
-        }
-
         public void receiveFIFOChannel(Event e, int next)
         {
             lock(this)
             {
-                Console.WriteLine("Recebi! --->" + next  + "NEXTEVENT ----> " + this.nextEvent);
                 if(this.nextEvent + 1 == next )
                 {
-                    Console.WriteLine("Vou mandar para os subscritores");
                     sendToSubscriber(e);
                     this.nextEvent += 1;
                     this.totalpropagate(e);
@@ -300,9 +351,6 @@ namespace Broker
                 }
             }
         }
-
-        //END OF FILTER AND TOTAl
-
 
         //TOTAL FLOOD
         public int getSeqNumber()
@@ -430,25 +478,14 @@ namespace Broker
                 pubI.setSeqNumber(e.getTopic(), e.getNumber());
                 this.maxPerTopic.Add(pubI);
             }
-
-            
-            //if (this.maxPerTopic.ContainsKey(e.getTopic()))
-            //{
-            //    if (e.getNumber() > this.maxPerTopic[e.getTopic()])
-            //        this.maxPerTopic[e.getTopic()] = e.getNumber();
-            //}
-            //else
-            //{
-            //    this.maxPerTopic.Add(e.getTopic(), e.getNumber());
-            //}
         }
 
-        public PubInfo getPubInfo(string name, string topic)
+        public PubInfo getPubInfo(string name)
         {
 
             foreach (PubInfo pubT in this.pubTopicSeq)
             {
-                if (pubT.getName().Equals(name) && pubT.hasTopic(topic))
+                if (pubT.getName().Equals(name))
                 {
 
                     return pubT;
@@ -466,7 +503,7 @@ namespace Broker
                 Thread thread = new Thread(() => this.sendToSubscriber(e));
                 thread.Start();
             }
-            if(typeOrder.Equals("FIFO")) 
+            if(typeOrder.Equals("FIFO") && !(this.typeRouting.Equals("filtering")))
             {
                //Thread thread = new Thread(() => this.sentToSubscriberFIFO(name,e));
                //thread.Start();
@@ -517,7 +554,6 @@ namespace Broker
                         if (pubT.getName().Equals(name))
                         {
                             existsPub = true;
-                            pubT.addTopic(e.getTopic());
                             break;
                         }    
                     }
@@ -527,17 +563,15 @@ namespace Broker
                     try
                     {
                         PubInfo newPub = new PubInfo(name);
-                        newPub.addTopic(e.getTopic());
                         this.pubTopicSeq.Add(newPub);
-                      //  lastSeqNumber.Add(name, 0);
                     }
                     catch (Exception ex)
                     {
                         Console.WriteLine(ex);
                     }
                 }
-                Console.WriteLine("Event iD ->" + e.getNumber() + "FROM " + e.getSender() + "TOPIC" + e.getTopic());
-                PubInfo pub = getPubInfo(name, e.getTopic());
+                Console.WriteLine("Event iD ->" + e.getNumber() + "FROM " + e.getSender() + "TOPIC" + e.getTopic());    
+                PubInfo pub = getPubInfo(name);
                 foreach (KeyValuePair<string, string> kvp in topicSubs)
                 {
 
@@ -546,7 +580,7 @@ namespace Broker
                         Console.WriteLine("Found a Subscriber:" + kvp.Value);
                         existsTopic = true;
 
-                        if (pub.getSeqNumber(e.getTopic()) + 1 /*lastSeqNumber[name] + 1*/ == e.getNumber())
+                        if (pub.getFIFOSeq() + 1  == e.getNumber())
                         {
 
                             ISubscriber sub = (ISubscriber)Activator.GetObject(
@@ -561,8 +595,7 @@ namespace Broker
                             if (queueEvents.Contains(e))
                                 queueEvents.Remove(e);
 
-                         // pub.getSeqNumber(e.getTopic());
-                            pub.addSeqNumber(e.getTopic());
+                            pub.addFIFOSeq();
                             getNextFIFOE(name, e);
 
                            
@@ -571,25 +604,21 @@ namespace Broker
                         {
                                   Console.WriteLine("Go to Priority, Event:" + e.getNumber());
                                   queueEvents.Add(e);
-                               //   getNextFIFOE(name, lastSeqNumber[name] + 1);
-
                         }
                     }
                 }
                 if (!existsTopic)
+                {
+                    if ((pub.getFIFOSeq() + 1 == e.getNumber()))
                     {
-                        if (  (pub.getSeqNumber(e.getTopic())+ 1 == e.getNumber()) && (name.Equals(e.getSender())))
-                        {
-                            pub.addSeqNumber(e.getTopic());
-                            getNextFIFOE(name, e);
-                        }
-                        else
-                        {
-                            queueEvents.Add(e);
-                            //getNextFIFOE(name, e);
-                        }
-
+                        pub.addFIFOSeq();
+                        getNextFIFOE(name, e);
                     }
+                    else
+                    {
+                        queueEvents.Add(e);
+                    }
+                }
             }
         }
         
@@ -600,13 +629,16 @@ namespace Broker
             {
                   foreach (Event queueE in this.queueEvents)
                     {
-                        if (queueE.getNumber() == (e.getNumber() + 1) && (queueE.getSender().Equals(e.getSender())) && queueE.getTopic().Equals(e.getTopic()))
+                        if (queueE.getNumber() == (e.getNumber() + 1) && (queueE.getSender().Equals(e.getSender())))
                         {
                          //  Console.WriteLine("FOUND NEXT MESSAGE : " + queueE.getNumber());
-
-                          sentToSubscriberFIFO(queueE.getSender(), queueE);
-                          //  Thread thread = new Thread(() => this.sentToSubscriberFIFO(queueE.getSender(), queueE));
-                           // thread.Start();
+                            if(this.typeRouting.Equals("flooding"))
+                                sentToSubscriberFIFO(queueE.getSender(), queueE);
+                            else
+                            { 
+                                Thread thread = new Thread(() => this.floodFiltered(queueE));
+                                thread.Start();
+                            }
                             break;
                         }
                     }
@@ -622,7 +654,7 @@ namespace Broker
             if (isFrozen)
             {
                 FrozenEvent fe = new FrozenEvent("SUB", topic, URL);
-                frozenEvents.Add(fe);
+                frozenEvents.Enqueue(fe);
                 return "ACK";
             }
             Console.WriteLine("Received Subscribe " + topic);
@@ -642,7 +674,7 @@ namespace Broker
                 if (isFrozen)
                 {
                     FrozenEvent fe = new FrozenEvent("UNSUB", topic, URL);
-                    frozenEvents.Add(fe);
+                    frozenEvents.Enqueue(fe);
                     return "ACK";
                 }
         //        bool isfilter = false;
@@ -684,7 +716,6 @@ namespace Broker
                     Console.WriteLine("Remove to Parent: " + topic + fromURL);
                     parent.removeInterest(topic, myUrl);
 
-                    sendToPM("BroEvent " + this.name + " , Removing Interest in " + topic);
                 }
 
             }
@@ -702,7 +733,6 @@ namespace Broker
                         Console.WriteLine("Remove to child: " + topic + childurl);
                         child.removeInterest(topic, myUrl);
 
-                        sendToPM("BroEvent " + this.name + " , removing Interest in " + topic);
                     }
                 }
             }
@@ -758,6 +788,14 @@ namespace Broker
                 Console.WriteLine("Pub nº" + i + " :" + s);
             }
             Console.WriteLine("Numero de Pubs : " + i);
+            foreach(KeyValuePair<string, bool> rep in this.replicas)
+            {
+                if (rep.Value)
+                    Console.WriteLine("Replica:" + rep.Key + " is alive" );
+                else
+                    Console.WriteLine("Replica:" + rep.Key + " failed");
+            }
+            
             i = 0;
             foreach (string s in subs.Keys)
             {
@@ -773,12 +811,6 @@ namespace Broker
             }
             Console.WriteLine("Numero de Subscricoes : " + i);
             i = 0;
-            foreach (KeyValuePair<string, Event> kp in events)
-            {
-                i++;
-                Console.WriteLine("Evento nº" + i + " Name:" + kp.Key + " Topic : " + kp.Value.getTopic() + " Conteudo : " + kp.Value.getContent());
-            }
-            Console.WriteLine("Numero de eventos : "+i);
         }
 
         public void propagate(Event e)
@@ -795,87 +827,78 @@ namespace Broker
             }
         }
 
+        public bool hasPub(string publisher)
+        {
+            bool pubFound = false;
+            foreach(PubInfo pub in this.pubTopicSeq)
+            {
+                if(pub.getName().Equals(publisher))
+                {
+                    pubFound = true;
+                    return pubFound;
+                }
+            }
+            return pubFound;
+        }
+
         public void floodFiltered(Event e)
         {
             //ok stop it right
             lock (this) { 
                 string lastHop = e.getLastHop();
                 e.setLastHop(this.myUrl);
-                foreach (KeyValuePair<string,string> kvp in filteringInterest)
+                if(!hasPub(e.getSender()))
                 {
-                    if (itsForSendInterest(kvp, e.getTopic()))
+                    addInfo(e.getSender());
+                }
+                PubInfo pub = getPubInfo(e.getSender());
+                if (e.getNumber() == pub.getFIFOSeq() + 1)
+                {
+                    foreach (KeyValuePair<string,string> kvp in filteringInterest)
                     {
-                        if (!lastHop.Equals(kvp.Value))
+                        if (itsForSendInterest(kvp, e.getTopic()))
                         {
-                            Console.WriteLine("GOING TO TOPIC" + e.getTopic());
-                            if (this.typeOrder.Equals("TOTAL") && this.adjustTotal[e.getTopic()] > 0 )
+                            if (!lastHop.Equals(kvp.Value))
                             {
-                                Console.WriteLine("Inside");
-                                e.setAdjustment(this.adjustTotal[e.getTopic()]);
-                                this.adjustTotal[e.getTopic()] = 0;
+
+                               e.setAdjustment(pub.getAdjusment(kvp.Value));
+                               Console.WriteLine("Filtering to:" + kvp.Value +  "  " + pub.getAdjusment(kvp.Value) + " " + e.getTopic());
+                               sendToPM("BroEvent " + name + " , " + e.getSender() + " , " + e.getTopic() + " , " + e.getNumber());
+                               IBroker broker = (IBroker)Activator.GetObject(
+                               typeof(IBroker),
+                               kvp.Value);
+                               broker.receivePub(e.getSender(),e);
                             }
-                           Console.WriteLine("Filtering to:" + kvp.Value);
-                           IBroker broker = (IBroker)Activator.GetObject(
-                           typeof(IBroker),
-                           kvp.Value);
-                           broker.receivePub(e.getSender(),e);
+                        }
+                        else
+                        {
+                            if (!(presentInterest(e.getTopic(), kvp.Value)) && !lastHop.Equals(kvp.Value))
+                            {
+                                pub.addAdjustment(kvp.Value);
+                            }
                         }
                     }
-                    //else
-                    //{
-                    //    Console.WriteLine("INSIDE");
-                    //    if(this.typeOrder.Equals("TOTAL") && !(presentInterest(e.getTopic(), kvp.Value)))
-                    //    {
-                    //        if (this.adjustTotal.ContainsKey(e.getTopic()))
-                    //        {
-                    //            if (e.getTotalSeq() == this.nextEvent + 1)
-                    //            {
-                    //                Console.WriteLine("É o ASEGUIR");
-                    //                updateAdjustTotal(e.getTopic());
-                    //            }
-                    //        }
-                    //        else
-                    //        {
-                               
-                    //            if (e.getTotalSeq() == this.nextEvent + 1)
-                    //            {
-                    //                Console.WriteLine("NAO EXISTIA" + e.getTopic());
-                    //                updateAdjustTotal(e.getTopic());
-                    //            }
-                    //        }
-
-                    //        Event ex = findNextTotal(e);
-                    //        while (ex != null)
-                    //        {
-                    //            if (e.getTopic().Equals(ex.getTopic()))
-                    //            {
-                    //                Console.WriteLine("WHILES");
-                    //                updateAdjustTotal(e.getTopic());
-                    //                ex = findNextTotal(ex);
-                    //            }
-                    //            else
-                    //                ex = null;
-                    //        }
-                    //    }
-                    //}
+                    sendToSubscriber(e);
+                    pub.addFIFOSeq();
+                    getNextFIFOE(e.getSender(),e);
                 }
-            }
-        }
-
-
-        public void updateAdjustTotal(string topic)
-        {
-            lock (this) {
-                foreach(KeyValuePair<string, int> topicAdj in this.adjustTotal)
+                else
                 {
-                    if (!topicAdj.Equals(topic))
-                    {
-                        Console.WriteLine("FRITATIN");
-                        this.adjustTotal[topicAdj.Key] += 1;
-                        Console.WriteLine("CHE FRITOU NE DREAD");
-                    }
+                    this.queueEvents.Add(e);
                 }
+              }
+          }
+
+        private void addInfo(string name)
+        {
+            PubInfo newPub = new PubInfo(name);
+            if (!parentURL.Equals("null"))
+                newPub.addURL(parentURL);
+            foreach (string url in this.childs.Values)
+            {
+                newPub.addURL(url);
             }
+            this.pubTopicSeq.Add(newPub);
         }
 
         public bool presentInterest(string p1, string p2)
@@ -907,7 +930,7 @@ namespace Broker
                     this.parentURL);
 
                     parent.receivePub(e.getSender(), e);
-                    sendToPM("BroEvent " + name + " , " + e.getSender() + " , " + e.getTopic() + " , " + e.getNumber());
+
 
                 }
                 if (!(childs.Count == 0))
@@ -920,7 +943,7 @@ namespace Broker
                             childurl);
 
                         child.receivePub(e.getSender(), e);
-                        sendToPM("BroEvent " + name + " , " + e.getSender() + " , " + e.getTopic() + " , " + e.getNumber());
+
                     }
                 }
             }
@@ -934,7 +957,7 @@ namespace Broker
                             this.parentURL);
 
                     parent.receivePub(e.getSender(), e);
-                    sendToPM("BroEvent " + name + " , " + e.getSender() + " , " + e.getTopic() + " , " + e.getNumber());
+
                 }
                 if (!(childs.Count == 0))
                 {
@@ -947,11 +970,12 @@ namespace Broker
                                childurl);
 
                           child.receivePub(e.getSender(), e);
-                          sendToPM("BroEvent " + name + " , " + e.getSender() + " , " + e.getTopic() + " , " + e.getNumber());
+
                         }
                     }
                 }
             }
+             sendToPM("BroEvent " + name + " , " + e.getSender() + " , " + e.getTopic() + " , " + e.getNumber());
         }
 
         private void tellBrokersInterest(string fromURL,string topic)
@@ -996,153 +1020,17 @@ namespace Broker
             lock (this)
             {
                 KeyValuePair<string, string> kvp;
-                int max = 0;
+               // int max = 0;
                 kvp = new KeyValuePair<string, string>(topic, url);
-                if (!this.adjustTotal.ContainsKey(topic))
-                    adjustTotal.Add(topic, 0);
+                //if (!this.adjustTotal.ContainsKey(topic))
+                //    adjustTotal.Add(topic, 0);
                 if (!filteringInterest.Contains(kvp))
                 {
                     filteringInterest.Add(kvp);
                     Console.WriteLine("Adicionei interesse from " + url + topic);
                     tellBrokersInterest(url, topic);
-
-                    foreach(PubInfo pubMax in this.maxPerTopic)
-                    {
-                        Console.WriteLine(pubMax.getName() + "---->" + pubMax.getSeqNumber(topic));
-                        if (pubMax.hasTopic(topic))
-                        {
-                            foreach(string topicAux in pubMax.getValues().Keys)
-                            {
-                                Console.WriteLine("I have the max ----->" + max);
-                                if (pubMax.giveNumber(topic,topicAux) && pubMax.getSeqNumber(topicAux) > 0 )
-                                    max = pubMax.getSeqNumber(topicAux);
-                                else
-                                   max = askNeighboors(topic, url, pubMax.getName());
-
-
-                            // Vê isto deficiente de merda quando chegares. this.maxPerTopic
-                                if(max > 0)
-                                {
-                                    if (this.childs.ContainsValue(url))
-                                    {
-                                        //pubMax.setSeqNumber(topic, max);
-                                        foreach (KeyValuePair<string, string> child in childs)
-                                        {
-                                            if (child.Value.Equals(url))
-                                            {
-                                                IBroker broker = (IBroker)Activator.GetObject(
-                                                 typeof(IBroker),
-                                                child.Value);
-                                                broker.adjustEvents(topicAux, max, pubMax.getName());
-                                            }
-                                        }
-                                    }
-                                    else
-                                    {
-                                        if (!parentURL.Equals("null") && parentURL.Equals(url))
-                                        {
-                                            IBroker broker = (IBroker)Activator.GetObject(
-                                                    typeof(IBroker),
-                                                    parentURL);
-                                            broker.adjustEvents(topicAux, max, pubMax.getName());
-                                        }
-                                    }
-                                }                            
-                            }
-                        }
-                        else
-                        {
-                            max = askNeighboors(topic, url, pubMax.getName());
-                            if (!(max <= 0))
-                            {
-                                if (this.childs.ContainsValue(url))
-                                {
-                                    //pubMax.setSeqNumber(topic, max);
-                                    foreach (KeyValuePair<string, string> child in childs)
-                                    {
-                                        if (child.Value.Equals(url))
-                                        {
-                                            IBroker broker = (IBroker)Activator.GetObject(
-                                             typeof(IBroker),
-                                            child.Value);
-                                            broker.adjustEvents(topic, max, pubMax.getName());
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    if (!parentURL.Equals("null") && parentURL.Equals(url))
-                                    {
-                                        IBroker broker = (IBroker)Activator.GetObject(
-                                                typeof(IBroker),
-                                                parentURL);
-                                        broker.adjustEvents(topic, max, pubMax.getName());
-                                    }
-                                }
-                            }
-
-                        }
-
-                    }
-
-                }
-
-            } 
-        }
-
-        private int askNeighboors(string topic, string url,string pubName)
-        {
-            int max = 0;
-            int aux = 0;
-            lock (maxPerTopic) 
-            {
-                foreach (KeyValuePair<string, string> child in childs) 
-                {
-
-                    if(!child.Value.Equals(url))
-                    {
-                        IBroker broker = (IBroker)Activator.GetObject(
-                                typeof(IBroker),
-                                child.Value);
-                        //Método que devolve um int que devolve o max seq para o topico topic
-                        Console.WriteLine("Child: " + child.Value);
-                        aux = broker.returnSeqTopic(topic, this.myUrl, pubName);
-                        if(aux > max)
-                        {
-                            max = aux;
-                        }
-                    }
-                }
-                if((!parentURL.Equals("null")) && !parentURL.Equals(url))
-                {
-                    Console.WriteLine("Parent: "+  parentURL);
-                    IBroker broker = (IBroker)Activator.GetObject(
-                                typeof(IBroker),
-                               parentURL);
-                    //Método que devolve um int que devolve o max seq para o topico topic
-                    aux = broker.returnSeqTopic(topic, this.myUrl, pubName);
-                    if(aux > max)
-                    {
-                        max = aux;
-                    }
                 }
             }
-            return max;
-        }
-
-        public int returnSeqTopic(string topic,string url,string pubName)
-        {
-         //   lock (maxPerTopic) 
-           // {
-            foreach (PubInfo pubMax in this.maxPerTopic)
-            {
-                if (pubMax.hasTopic(topic))
-                {
-                    return pubMax.getSeqNumber(topic);
-                }
-            }
-           return askNeighboors(topic, url, pubName);
-           // }
         }
 
         public void sendToSubscriber(Event e)
@@ -1159,81 +1047,6 @@ namespace Broker
                     sub.receiveEvent(e.getSender(), e);
                     sendToPM("SubEvent "+sub.getName()+" , "+e.getSender()+" , "+e.getTopic()+" , "+e.getNumber());
                 }
-            }
-        }
-
-        public void adjustEvents(string topic, int max, string pubName)
-        {
-
-            lock (maxPerTopic) {
-                localPubAdjust(topic,max,pubName);
-                localMaxAdjust(topic, max, pubName);
-                
-            }
-        }
-
-        private void localMaxAdjust(string topic, int max, string pubName)
-        {
-            bool inside = false;
-            foreach (PubInfo pub in this.maxPerTopic)
-            {
-                if (pub.getName().Equals(pubName))
-                {
-                    inside = true;
-                    if (pub.hasTopic(topic))
-                    {
-                        if (max > pub.getSeqNumber(topic))
-                        {
-                            pub.setSeqNumber(topic, max );
-                        }
-                    }
-                    else
-                    {
-                        pub.addTopic(topic);
-                        pub.setSeqNumber(topic, max );
-                    }
-                }
-            }
-
-            if (!inside)
-            {
-                PubInfo pubInfo = new PubInfo(pubName);
-                pubInfo.addTopic(topic);
-                pubInfo.setSeqNumber(topic, max);
-                this.maxPerTopic.Add(pubInfo);
-            }
-        }
-
-        private void localPubAdjust(string topic, int max, string pubName)
-        {
-            bool inside = false;
-            foreach (PubInfo pub in this.pubTopicSeq)
-            {
-                if (pub.getName().Equals(pubName))
-                {
-                    inside = true;
-                    if (pub.hasTopic(topic))
-                    {
-                        if (max > pub.getSeqNumber(topic))
-                        {
-                            pub.setSeqNumber(topic, max);
-                        }
-                    }
-                    else
-                    {
-
-                        pub.addTopic(topic);
-                        pub.setSeqNumber(topic, max);
-                    }
-                }
-            }
-
-            if (!inside)
-            {
-                PubInfo pubInfo = new PubInfo(pubName);
-                pubInfo.addTopic(topic);
-                pubInfo.setSeqNumber(topic, max);
-                this.pubTopicSeq.Add(pubInfo);
             }
         }
 
@@ -1366,13 +1179,19 @@ namespace Broker
         public void unfreeze()
         {
             isFrozen = false;
+            Console.WriteLine("Unfreezng the queue");
             checkFrozenEvents();
         }
 
         public void checkFrozenEvents()
         {
-            foreach(FrozenEvent fe in frozenEvents)
+            lock(this)
             {
+
+                while (this.frozenEvents.Count > 0)
+            {
+                Console.WriteLine("Unfreezng the queue");
+                FrozenEvent fe = frozenEvents.Dequeue();
                 switch (fe.getEventType())
                 {
                     case"NEW CHILD":
@@ -1396,8 +1215,8 @@ namespace Broker
                 }
 
             }
-
-            frozenEvents = new List<FrozenEvent>();
+            }  
+            frozenEvents = new Queue<FrozenEvent>();
         }
     }
 }

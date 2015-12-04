@@ -1,4 +1,5 @@
 RoutingPolicy filtering
+LoggingLevel full
 Ordering FIFO
 Site site0 Parent none
 Site site1 Parent site0
@@ -18,19 +19,26 @@ Process broker4 is broker On site4 URL tcp://localhost:3334/broker
 Process subscriber4 is subscriber On site4 URL tcp://localhost:1114/sub
 Process broker5 is broker On site5 URL tcp://localhost:3335/broker
 Process subscriber5 is subscriber On site5 URL tcp://localhost:1115/sub
+STATUS
 Wait 3000
 Subscriber subscriber0 Subscribe /p00-0/a
-Subscriber subscriber1 Subscribe /p00-0/b
+Subscriber subscriber1 Subscribe /p00-0/a
 Subscriber subscriber3 Subscribe /p00-0/a
 Subscriber subscriber3 Subscribe /p00-1/a
 Subscriber subscriber4 Subscribe /p00-0/a
 Subscriber subscriber5 Subscribe /p00-0/a
 Publisher publisher00 Publish 120 Ontopic /p00-0/a Interval 500
 Publisher publisher00 Publish 120 Ontopic /p00-1/a Interval 500
-Wait 30000
+STATUS
+Wait 25000
 Subscriber subscriber0 Subscribe /p00-1/a
+Freeze broker0
+Wait 5000
+Unfreeze broker0
 Subscriber subscriber5 Subscribe /p00-1/a
-Subscriber subscriber4 Subscribe /p00-1/*
+Subscriber subscriber4 Subscribe /p00-1/a
+STATUS
 Wait 7000
-Subscriber subscriber4 Unsubscribe /p00-1/*
+Subscriber subscriber4 Unsubscribe /p00-1/a
 Subscriber subscriber0 Unsubscribe /p00-1/a
+STATUS
