@@ -25,11 +25,13 @@ Subscriber subscriber2 Subscribe /p01-1
 Subscriber subscriber3 Subscribe /p00-0
 Subscriber subscriber3 Subscribe /p00-1
 Subscriber subscriber3 Subscribe /p01-1
-Subscriber subscriber3 Subscribe /p01-0
-Publisher publisher00 Publish 2 Ontopic /p00-0 Interval 500
-Publisher publisher00 Publish 2 Ontopic /p00-1 Interval 500
-Publisher publisher01 Publish 2 Ontopic /p01-0 Interval 500
-Publisher publisher01 Publish 2 Ontopic /p01-1 Interval 500
-
-
-
+Publisher publisher00 Publish 120 Ontopic /p00-0 Interval 500
+Publisher publisher00 Publish 120 Ontopic /p00-1 Interval 500
+Publisher publisher01 Publish 120 Ontopic /p01-0 Interval 500
+Publisher publisher01 Publish 120 Ontopic /p01-1 Interval 500
+Wait 7000
+Subscriber subscriber3 Unsubscribe /p01-1
+Subscriber subscriber1 Unsubscribe /p00-0
+Wait 7000
+Subscriber subscriber3 Subscribe /p01-1
+Subscriber subscriber1 Subscribe /p00-0

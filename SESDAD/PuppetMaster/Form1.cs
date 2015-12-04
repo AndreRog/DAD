@@ -289,9 +289,12 @@ namespace PuppetMaster
             if (this.single || this.site == siteB)
             {
 
-                String arguments = name + " " + site + " " + URL + " " + URLParent + " " + policy + " " + order + " " + logLvl;
+                String arguments = name + " " + site + " " + URL + " " + URLParent + " " + policy + " " + order + " " + logLvl + " " + "NO";
                 String filename = @"..\..\..\Broker\bin\Debug\Broker.exe";
                 Process.Start(filename, arguments);
+
+
+                //addReplicas(name, site, URL, URL, policy, order, logLvl);
             }
             else
             {
@@ -305,6 +308,26 @@ namespace PuppetMaster
             this.brokersSite.Add(siteB, URL);
             this.brokerNameSite.Add(name, siteB);
         }
+
+        public void addReplicas(string name, string site, string myUrl, string leaderURL, string policy, string order, string loglvl)
+        {
+
+            char[] delimiter = { ':', '/' };
+            string[] splitURL = myUrl.Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
+            int newPort = Int32.Parse(splitURL[2]) + 1000;
+            string newUrl = "tcp://" + splitURL[1] + ":" + newPort + "/broker";
+
+            String arguments = name + " " + site + " " + newUrl + " " + leaderURL + " " + policy + " " + order + " " + logLvl + " " + "REPLICA";
+            String filename = @"..\..\..\Broker\bin\Debug\Broker.exe";
+            Process.Start(filename, arguments);
+
+            newPort = newPort + 100;
+            newUrl = "tcp://" + splitURL[1] + ":" + newPort + "/broker";
+            arguments = name + " " + site + " " + newUrl + " " + leaderURL + " " + policy + " " + order + " " + logLvl + " " + "REPLICA";
+            filename = @"..\..\..\Broker\bin\Debug\Broker.exe";
+            Process.Start(filename, arguments);
+        }
+
 
         public string getParent(string siteO)
         {
@@ -598,7 +621,7 @@ namespace PuppetMaster
                 IBroker broker = (IBroker)Activator.GetObject(
                                     typeof(IBroker),
                              brokers[processName]);
-                broker.freeze();
+                broker.unfreeze();
             }
             else if (pubWithUrl.TryGetValue(processName, out url))
             {
@@ -606,7 +629,7 @@ namespace PuppetMaster
                 IPublisher publisher = (IPublisher)Activator.GetObject(
                                     typeof(IPublisher),
                              pubWithUrl[processName]);
-                publisher.freeze();
+                publisher.unfreeze();
             }
             else if (subsWithUrl.TryGetValue(processName, out url))
             {
@@ -614,7 +637,7 @@ namespace PuppetMaster
                 ISubscriber subscriber = (ISubscriber)Activator.GetObject(
                                     typeof(ISubscriber),
                              subsWithUrl[processName]);
-                subscriber.freeze();
+                subscriber.unfreeze();
             }
         }
 
