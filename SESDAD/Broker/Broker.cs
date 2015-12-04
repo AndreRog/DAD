@@ -143,6 +143,8 @@ namespace Broker
 
         public void addReplica(string url, bool alive)
         {
+            lock(this.replicas)
+            {
             if(!this.replicas.ContainsKey(url))
             {
                 this.replicas.Add(url, alive);
@@ -157,18 +159,22 @@ namespace Broker
                         brokerS.newReplica(url, true);
                 }
             }
+                }
         }
 
         public void newReplica(string url,bool alive)
         {
-             if(!this.replicas.ContainsKey(url))
+            lock (this.replicas)
             {
-                this.replicas.Add(url, alive);
+                if (!this.replicas.ContainsKey(url))
+                {
+                    this.replicas.Add(url, alive);
 
-                IBroker brokerS = (IBroker)Activator.GetObject(
-                    typeof(IBroker),
-                       url);
-                brokerS.newReplica(this.myUrl, true);
+                    IBroker brokerS = (IBroker)Activator.GetObject(
+                        typeof(IBroker),
+                           url);
+                    brokerS.newReplica(this.myUrl, true);
+                }
             }
         }
 
@@ -846,6 +852,7 @@ namespace Broker
             //ok stop it right
             lock (this) { 
                 string lastHop = e.getLastHop();
+                List<string> sentURL = new List<string>();
                 e.setLastHop(this.myUrl);
                 if(!hasPub(e.getSender()))
                 {
@@ -858,9 +865,10 @@ namespace Broker
                     {
                         if (itsForSendInterest(kvp, e.getTopic()))
                         {
-                            if (!lastHop.Equals(kvp.Value))
+                            if (!lastHop.Equals(kvp.Value) && !sentURL.Contains(kvp.Value))
                             {
 
+                                
                                e.setAdjustment(pub.getAdjusment(kvp.Value));
                                Console.WriteLine("Filtering to:" + kvp.Value +  "  " + pub.getAdjusment(kvp.Value) + " " + e.getTopic());
                                sendToPM("BroEvent " + name + " , " + e.getSender() + " , " + e.getTopic() + " , " + e.getNumber());
@@ -868,13 +876,16 @@ namespace Broker
                                typeof(IBroker),
                                kvp.Value);
                                broker.receivePub(e.getSender(),e);
+                               sentURL.Add(kvp.Value);
                             }
                         }
                         else
                         {
-                            if (!(presentInterest(e.getTopic(), kvp.Value)) && !lastHop.Equals(kvp.Value))
+                            if (!(presentInterest(e.getTopic(), kvp.Value)) && !lastHop.Equals(kvp.Value) && !sentURL.Contains(kvp.Value))
                             {
+
                                 pub.addAdjustment(kvp.Value);
+                                sentURL.Add(kvp.Value);
                             }
                         }
                     }
